@@ -70,8 +70,11 @@ def math_error(errnum):
 
 ####################################
 
-class Float(object):
+cdef class Float:
     """ Floating-point number in Microsoft Binary Format. """
+    
+    cdef int neg, man, exp
+    cdef int digits, mantissa_bits, byte_size
     
     def __init__(self, neg=False, man=0, exp=0):
         """ Initialise float. """
@@ -82,7 +85,7 @@ class Float(object):
         return self.__class__(self.neg, self.man, self.exp)
     
     @classmethod
-    def from_int(cls, num):
+    def from_int(Float cls, num):
         """ Convert int to float. """
         # this creates an mbf float. the carry byte will also be in use. call discard_carry afterwards if you want an empty carry.    
         # set mantissa to number, shift to create carry bytes
@@ -92,7 +95,7 @@ class Float(object):
         return n
 
     @classmethod
-    def from_bytes(cls,s):
+    def from_bytes(Float cls, s):
         """ Convert byte representation to float. """
         # put mantissa in form . 1 f1 f2 f3 ... f23
         # internal representation has four bytes, last byte is carry for intermediate results
@@ -232,7 +235,7 @@ class Float(object):
         self.neg = not self.neg
         return self
         
-    def iadd_raw(self, right_in):
+    def iadd_raw(self, Float right_in):
         """ Unnormalised add in-place. """
         if right_in.is_zero():
             return self
@@ -260,11 +263,11 @@ class Float(object):
                 self.neg = right.neg         
         return self
         
-    def iadd(self, right):
+    def iadd(self, Float right):
         """ In-place addition. """
         return self.iadd_raw(right).normalise()
         
-    def isub(self, right_in):
+    def isub(self, Float right_in):
         """ In-place subtraction. """
         return self.iadd(self.__class__(not right_in.neg, right_in.man, right_in.exp))
         
@@ -279,7 +282,7 @@ class Float(object):
         self.normalise()    
         return self
         
-    def imul(self, right_in):    
+    def imul(self, Float right_in):    
         """ In-place multiplication. """
         if self.is_zero():
             return self
@@ -297,7 +300,7 @@ class Float(object):
         self.imul(self)
         return self
         
-    def idiv(self, right_in):
+    def idiv(self, Float right_in):
         """ In-place division. """
         if right_in.is_zero():
             msg_zero_div()
@@ -329,7 +332,7 @@ class Float(object):
         self.idiv(self.ten)
         return self
         
-    def ipow_int(self, expt):
+    def ipow_int(self, Float expt):
         """ In-place exponentiation by integer. """
         # exponentiation by squares
         if expt < 0:
@@ -348,13 +351,13 @@ class Float(object):
             self = self.one.copy()
         return self
               
-    def abs_gt(self, right):
+    def abs_gt(self, Float right):
         """ Absolute value is greater than. """
         if self.exp != right.exp:
             return (self.exp > right.exp)     
         return (self.man > right.man)     
 
-    def gt(self, right):
+    def gt(self, Float right):
         """ Greater than. """
         if self.neg != right.neg:
             return right.neg
@@ -363,11 +366,11 @@ class Float(object):
         else:
             return self.abs_gt(right)
     
-    def equals(self, right):
+    def equals(self, Float right):
         """ Float equals other float. """
         return (self.neg==right.neg and self.exp==right.exp and self.man&self.carry_mask == right.man&right.carry_mask)
         
-    def equals_inc_carry(self, right, grace_bits=0):
+    def equals_inc_carry(self, Float right, grace_bits=0):
         """ Float equals other float, taking carry into account. """
         return (self.neg==right.neg and self.exp==right.exp and abs(self.man-right.man) < (1<<grace_bits)) 
      
@@ -402,7 +405,7 @@ class Float(object):
         return man * 2**(self.exp - self.bias) * (1-2*self.neg)
 
     @classmethod
-    def from_value(cls, value):
+    def from_value(Float cls, value):
         """ Set to value of Python float. """
         neg = value < 0
         fexp = math.log(abs(value), 2) - cls.mantissa_bits
