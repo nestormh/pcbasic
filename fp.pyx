@@ -29,7 +29,7 @@ import error
 import state
 
 # the exponent is biased by 128
-true_bias = 128
+cdef int true_bias = 128
 
 ######################################    
 
@@ -73,8 +73,11 @@ def math_error(errnum):
 cdef class Float:
     """ Floating-point number in Microsoft Binary Format. """
     
-    cdef int neg, man, exp
+    cdef int neg, exp
+    cdef long man
     cdef int digits, mantissa_bits, byte_size
+    cdef int bias
+    cdef long carry_mask
     
     def __init__(self, neg=False, man=0, exp=0):
         """ Initialise float. """
@@ -85,25 +88,27 @@ cdef class Float:
         return self.__class__(self.neg, self.man, self.exp)
     
     @classmethod
-    def from_int(Float cls, num):
+    def from_int(Float cls, int num):
         """ Convert int to float. """
         # this creates an mbf float. the carry byte will also be in use. call discard_carry afterwards if you want an empty carry.    
         # set mantissa to number, shift to create carry bytes
-        n = cls( (num<0), long(abs(num) << 8), cls.bias )
+        n = cls( (num<0), abs(num) << 8, cls.bias )
         # normalise shifts to turn into proper mbf
         n.normalise()
         return n
 
     @classmethod
-    def from_bytes(Float cls, s):
+    def from_bytes(Float cls, char *s):
         """ Convert byte representation to float. """
         # put mantissa in form . 1 f1 f2 f3 ... f23
         # internal representation has four bytes, last byte is carry for intermediate results
         # put mantissa in form . 1 f1 f2 f3 ... f55
         # internal representation has seven bytes, last bytes are carry for intermediate results
-        man = long((s[-2]|0x80) * 0x100**(cls.byte_size-2))
-        for i in range(cls.byte_size-2):
-            man += s[-cls.byte_size+i] * 0x100**i
+        cdef int byte_size = cls.byte_size
+        cdef long man = (s[-2]|0x80) * 0x100**(byte_size-2)
+        cdef int i
+        for i in range(byte_size-2):
+            man += s[-byte_size+i] * 0x100**i
         man <<= 8
         return cls( (s[-2] >= 0x80), man, s[-1])
     
@@ -112,7 +117,7 @@ cdef class Float:
         self.apply_carry()
         # extract bytes    
         s = bytearray()
-        man = self.man
+        cdef long man = self.man
         for _ in range(self.byte_size-1):
             man >>= 8
             s.append(man&0xff)
@@ -157,11 +162,12 @@ cdef class Float:
     
     def trunc_to_int(self):
         """ Truncate float to integer. """
-        man = self.man >> 8 
+        cdef long man = self.man >> 8 
+        cdef long val
         if self.exp > self.bias :
-            val = long(man << (self.exp-self.bias))
+            val = man << (self.exp-self.bias)
         else:
-            val = long(man >> (-self.exp+self.bias))
+            val = man >> (-self.exp+self.bias)
         if self.neg:
             return -val
         else:
@@ -169,10 +175,11 @@ cdef class Float:
 
     def round_to_int(self):
         """ Round float to integer. """
+        cdef long man
         if self.exp > self.bias:
-            man = long(self.man << (self.exp-self.bias))
+            man = self.man << (self.exp-self.bias)
         else:
-            man = long(self.man >> (-self.exp+self.bias))
+            man = self.man >> (-self.exp+self.bias)
         # carry bit set? then round up (affect mantissa only, note we can be bigger than our byte_size allows)
         #if (n_in.man & 0xff) > 0x7f:
         if (man & 0xff) > 0x7f:
@@ -211,7 +218,7 @@ cdef class Float:
         """ In-place. Discard carry & truncate towards -infinity; return as float. """
         if self.is_zero():
             return self
-        n = self.from_int(self.trunc_to_int())
+        cdef Float n = self.from_int(self.trunc_to_int())
         if n.neg and not self.equals(n):
             self = sub(n, n.one)
         else:
@@ -221,9 +228,9 @@ cdef class Float:
     def iround(self):
         """ In-place. Round and return as float. """
         if self.exp-self.bias > 0:
-            self.man = long(self.man * 2**(self.exp-self.bias))
+            self.man = self.man * 2**(self.exp-self.bias)
         else:
-            self.man = long(self.man / 2**(-self.exp+self.bias))
+            self.man = self.man / 2**(-self.exp+self.bias)
         self.exp = self.bias
         # carry bit set? then round up (moves exponent on overflow)
         self.apply_carry()
@@ -243,6 +250,7 @@ cdef class Float:
             self.neg, self.man, self.exp = right_in.neg, right_in.man, right_in.exp
             return self
         # ensure right has largest exponent
+        cdef Float right
         if self.exp > right_in.exp:
             right = self.copy() 
             self.neg, self.man, self.exp = right_in.neg, right_in.man, right_in.exp
@@ -291,7 +299,7 @@ cdef class Float:
             return self
         self.exp += right_in.exp - right_in.bias - 8
         self.neg = (self.neg != right_in.neg)
-        self.man = long(self.man * right_in.man)
+        self.man = self.man * right_in.man
         self.normalise()
         return self
         
@@ -332,7 +340,7 @@ cdef class Float:
         self.idiv(self.ten)
         return self
         
-    def ipow_int(self, Float expt):
+    def ipow_int(self, int expt):
         """ In-place exponentiation by integer. """
         # exponentiation by squares
         if expt < 0:
@@ -376,7 +384,7 @@ cdef class Float:
      
     def bring_to_range(self, lim_bot, lim_top):
         """ Return exponentiation needed to bring float into range. """
-        exp10 = 0    
+        cdef int exp10 = 0    
         while self.abs_gt(lim_top):
             self.idiv10()
             exp10 += 1
@@ -392,7 +400,7 @@ cdef class Float:
         self.iadd(self.half)
         ##self.apply_carry()
         # then truncate to int (this throws away carry)
-        num = abs(self.trunc_to_int())
+        cdef long num = abs(self.trunc_to_int())
         # round towards neg infinity when negative
         if self.neg:
             num += 1
