@@ -189,7 +189,7 @@ cdef class Float:
         else:
             return (man >> 8)
 
-    def normalise(self):
+    cdef Float normalise(self):
         """ Bring float to normal form. """
         # zero mantissa -> make zero
         if self.man == 0 or self.exp == 0:
@@ -374,11 +374,11 @@ cdef class Float:
         else:
             return self.abs_gt(right)
     
-    def equals(self, Float right):
+    cpdef bint equals(self, Float right):
         """ Float equals other float. """
         return (self.neg==right.neg and self.exp==right.exp and self.man&self.carry_mask == right.man&right.carry_mask)
         
-    def equals_inc_carry(self, Float right, grace_bits=0):
+    cdef bint equals_inc_carry(self, Float right, int grace_bits=0):
         """ Float equals other float, taking carry into account. """
         return (self.neg==right.neg and self.exp==right.exp and abs(self.man-right.man) < (1<<grace_bits)) 
      
