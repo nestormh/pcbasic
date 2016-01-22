@@ -217,6 +217,8 @@ TERM = '\xfe\xa6'
 # PC-BASIC only; not a GW-BASIC token
 DEBUG = '\xff\xff'
 
+PYTHON = '\xff\x80'
+
 # keyword dictionary
 to_keyword = {
     END: 'END', FOR: 'FOR', NEXT: 'NEXT', DATA: 'DATA', INPUT: 'INPUT',
@@ -256,7 +258,7 @@ to_keyword = {
     CHR: 'CHR$', PEEK: 'PEEK', SPACE: 'SPACE$', OCT: 'OCT$', HEX: 'HEX$',
     LPOS: 'LPOS',  CINT: 'CINT', CSNG: 'CSNG', CDBL: 'CDBL', FIX: 'FIX',
     PEN: 'PEN', STICK: 'STICK', STRIG: 'STRIG', EOF: 'EOF', LOC: 'LOC',
-    LOF: 'LOF',}
+    LOF: 'LOF', PYTHON: 'PYTHON'}
 
 # other keywords on http://www.chebucto.ns.ca/~af380/GW-BASIC-tokens.html :
 # Sperry PC only:

@@ -42,6 +42,7 @@ import basictoken as tk
 import util
 import var
 import vartypes
+import gwbasic2python
 
 def prepare():
     """ Initialise statements module. """
@@ -219,6 +220,7 @@ def parse_statement():
                 elif c == tk.PEN:    exec_pen(ins)
                 elif c == tk.STRIG:  exec_strig(ins)
                 elif c == tk.DEBUG:  exec_debug(ins)
+                elif c == tk.PYTHON: exec_python(ins)
                 else: raise error.RunError(error.STX)
             else:
                 raise error.RunError(error.STX)
@@ -281,6 +283,20 @@ def exec_debug(ins):
     while util.peek(ins) not in tk.end_line:
         debug_cmd += ins.read(1)
     debug.debug_exec(debug_cmd)
+
+def exec_python(ins):
+    print "This is python"
+    values = ""
+    util.skip_white(ins)
+    while util.peek(ins) not in tk.end_line:
+        # util.skip_white(ins)
+        values += ins.read(1)
+    print " values", values
+
+    python = gwbasic2python.GWBasic2Python()
+    python.start_script(values)
+
+    util.require(ins, tk.end_statement)
 
 def exec_term(ins):
     """ TERM: load and run PCjr buitin terminal emulator program. """
