@@ -43,6 +43,7 @@ import util
 import var
 import vartypes
 import gwbasic2python
+import sys
 
 def prepare():
     """ Initialise statements module. """
@@ -285,16 +286,22 @@ def exec_debug(ins):
     debug.debug_exec(debug_cmd)
 
 def exec_python(ins):
-    print "This is python"
-    values = ""
+    """
+    Function executed when statement PYTHON is used. It launches a python script from inside of a
+    GWBasic program
+    :param ins: Contains the input data provided as a parameter of the PYTHON statement
+    """
+    parameter = ""
     util.skip_white(ins)
     while util.peek(ins) not in tk.end_line:
-        # util.skip_white(ins)
-        values += ins.read(1)
-    print " values", values
+        parameter += ins.read(1)
 
-    python = gwbasic2python.GWBasic2Python()
-    python.start_script(values)
+    try:
+        python = gwbasic2python.GWBasic2Python()
+        python.start_script(parameter)
+    except:
+        print "Error while launching script", parameter
+        raise
 
     util.require(ins, tk.end_statement)
 
