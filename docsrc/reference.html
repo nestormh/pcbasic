@@ -1,6 +1,6 @@
 <!--
     PC-BASIC documentation
-    Copyright (c) 2014-2015 Rob Hagemans
+    Copyright (c) 2014-2016 Rob Hagemans
     This work is licensed under a Creative Commons Attribution-ShareAlike 4.0 International License.
     http://creativecommons.org/licenses/by-sa/4.0/legalcode
 -->
@@ -9,18 +9,18 @@
 <h2 id="reference">Language reference</h2>
 
 <p>
-    This documentation describes the PC-BASIC language. Since PC-BASIC emulates
-    GW-BASIC 3.23, IBM Advanced BASIC, IBM Cartridge BASIC and Tandy 1000 GW-BASIC,
-    it can also be used as documentation for those languages. Any differences
-    between these original dialects and the PC-BASIC implementation are
-    documented as well.
+    This documentation describes the PC-BASIC language, which aims to faithfully emulate
+    GW-BASIC 3.23, IBM Advanced BASIC, IBM Cartridge BASIC and Tandy 1000 GW-BASIC.
 </p>
 <p>
-    Please note that the original Microsoft documentation, as found in various
-    forms on the internet, is rather hit-and-miss;
-    GW-BASIC often behaves differently than documented by Microsoft.
+    Differences with the original languages do arise, and where this is the case they are documented.
 </p>
-
+<p>
+    Please note that Microsoft's official documentation for the original languages is rather hit-and-miss;
+    it leaves several features undocumented and incorrectly describes others. To avoid making the same errors,
+    the present documentation was written from scratch with reference to the actual behaviour.
+    The errors in this document are therefore all my own. Please contact me if you encounter them.
+</p>
 <section>
     <h3 id="metasyntax">Metasyntax</h3>
     <p>
@@ -35,7 +35,7 @@
         <dt><code><var>italic</var></code></dt>
         <dd>Replace with appropriate metavariable.</dd>
 
-        <dt><code>[a]</code><dt>
+        <dt><code>[a]</code></dt>
         <dd>Entities within square brackets are optional.</dd>
 
         <dt><code>{ a | b }</code></dt>
@@ -117,7 +117,7 @@
     <h3 id="variables">Variables</h3>
     <p>
         Variable names must start with a letter; all characters of the variable name
-        (except the <a href="#typechars">type character</a>) must be letters <code>A&#8212;Z</code>, figures <code>0&#8212;9</code>, or a dot <code>.</code>
+        (except the <a href="#typechars">sigil</a>) must be letters <code>A&#8212;Z</code>, figures <code>0&#8212;9</code>, or a dot <code>.</code>
         Only the first 40 characters in the name are significant. Variable names must
         not be identical to <a href="#keywords">keywords</a>. Variable
         names may start with a keyword, with the exception of <code><a href="#USR">USR</a></code> and
@@ -164,15 +164,15 @@
 
 <section>
     <h3 id="types">Types</h3>
-    <h4 id="typechars">Type characters</h4>
+    <h4 id="typechars">Sigils</h4>
     <p>
-        PC-BASIC recognises four variable types, distinguished by their type character
-        which is the last character of the variable's full name:
+        PC-BASIC recognises four variable types, distinguished by their <dfn>sigil</dfn>
+        or <dfn>type character</dfn>, the last character of the variable's full name:
     </p>
     <div class="scrollable">
         <table>
             <tr>
-                <th>char</th>
+                <th>sigil</th>
                 <th>type</th>
                 <th>size</th>
             </tr><tr>
@@ -195,7 +195,7 @@
         </table>
     </div>
     <p>
-        If no type character is specified, the first letter of the name determines
+        If no sigil is specified, the first letter of the name determines
         the type according to the settings of
         <code><a href="#DEFINT">DEFINT</a></code>/<code>DEFDBL</code>/<code>DEFSNG</code>/<code>DEFSTR</code>.
         If no such setting has been made, the default type is single-precision float.
@@ -266,7 +266,7 @@
         <li><code>IMP</code></li>
     </ol>
     <p>
-        Note in particular that exponentiation is more tightly bound than negation:
+        For example, exponentiation is more tightly bound than negation:
         <code>-1^2 = -1</code> but <code>(-1)^2 = 1</code>.
     </p>
 
@@ -445,8 +445,7 @@
     <h4 id="boolean-operators">Bitwise operators</h4>
     <p>
         PC-BASIC has no Boolean type and does not implement Boolean operators.
-        It does, however, implement bitwise operators. Note that PC-BASIC represents
-        negative integers using the two's complement.
+        It does, however, implement bitwise operators.
     </p>
     <p>
         Bitwise operators operate on numeric expressions only. If either
@@ -504,7 +503,10 @@
     <p>
         These operators can be used
         as Boolean operators only if <code>-1</code> is used to represent <i>true</i> while <code>0</code>
-        represents <i>false</i>. This interpretation is given in the table below.
+        represents <i>false</i>. Note that PC-BASIC represents
+        negative integers using the two's complement, so <code>NOT 0 = -1</code>.
+        The boolean interpretation of bitwise operators
+        is given in the table below.
     </p>
     <div class="scrollable">
         <table>
@@ -588,7 +590,35 @@
 
 <section>
     <h3 id="statements-functions">Statements and functions</h3>
-
+    <p>
+        A program line is composed of a line number and one or more <dfn>statements</dfn>. If multiple statements
+        are put on one line, they must be separated by colons <code>:</code>. Statements may be empty.
+    </p>
+    <p>
+        <dfn>Functions</dfn> can only be used as part of an expression within a statement; they may take input values
+        and produce a return value. For example,
+        in <code>PRINT ABS(-1)</code> the <code>ABS</code> function is used in an expression within the
+        <code>PRINT</code> statement.
+    </p>
+    <p>
+        Many reference works on GW-BASIC distinguish <dfn>commands</dfn> and statements; this distinction stems
+        from the original Dartmouth design of the BASIC language, in which commands were not part of the
+        language itself and could not be used in programs, but were rather used to control the
+        interpreter itself. However, in GW-BASIC this distinction is less useful and therefore this reference
+        includes what is traditionally thought of as commands in the category of statements.
+    </p>
+    <p>
+        Some reference works also use terms such as <dfn>system variable</dfn> for functions that do not take
+        an input, presumably since in the GW-BASIC syntax such functions have no brackets, in contrast to
+        the languages in the C family (and indeed some modern BASICs).
+        However, this is simply the GW-BASIC syntax for functions without inputs.
+        For example, one can do <code>DEF FNA=1: PRINT FNA</code>
+        in which no brackets are allowed.
+    </p>
+    <p>
+        Each statement has its own idiosyncratic syntax. In this section, statements and functions are listed alphabetically
+        with their syntax and notes on their use.
+    </p>
     <section>
         <h4 id="ABS"><code>ABS</code> function</h4>
         <code class="block">
@@ -1873,7 +1903,7 @@
             <b>{DEFINT|DEFDBL|DEFSNG|DEFSTR}</b> <var>first_0</var>[<b>-</b> <var>last_0</var>] [<b>,</b> <var>first_1</var>[<b>-</b> <var>last_1</var>]] ...
         </code>
         <p>
-            Sets the type that is assumed if no type character is specified when a variable name is used.
+            Sets the type that is assumed if no <a href="#typechars">sigil</a> is specified when a variable name is used.
             The statement sets the default type for varables starting with a letter from the ranges specified.
         </p>
         <p>
@@ -3532,7 +3562,7 @@
 <hr />
 
     <section>
-        <h4 id="INPUT-file"><code>INPUT</code> statement (devices and files)</h4>
+        <h4 id="INPUT-file"><code>INPUT</code> statement (files)</h4>
         <code class="block">
             <b>INPUT #</b> <var>file_num</var><b>,</b> <var>var_0</var> [<b>,</b> <var>var_1</var>] ...
         </code>
@@ -5731,7 +5761,7 @@
                 See <a href="#eightpointthree">MS-DOS 8.3 filenames</a> for interpretation of path specifications.
             </dd>
             <dt>
-                Cassette device <code>CAS1:<code>
+                Cassette device <code>CAS1:</code>
             </dt>
             <dd>
                 <code><var>parameters</var></code> can be a file name of up to eight characters.
@@ -5754,7 +5784,7 @@
                     <dd>Program file in bytecode format</dd>
                     <dt><samp>D</samp></dt>
                     <dd>Data file</dd>
-                    <dt><samp>M</samp></d1>
+                    <dt><samp>M</samp></dt>
                     <dd><code><a href="#BSAVE">BSAVE</a></code> memory image</dd>
                     <dt><samp>P</samp></dt>
                     <dd>Program file in protected format</dd>
@@ -5771,7 +5801,7 @@
                 These devices do not allow futher device parameters.
             </dd>
             <dt>
-                Serial devices <code>COM<var>n</var>:<code>
+                Serial devices <code>COM<var>n</var>:</code>
             </dt>
             <dd>
                 <p>
