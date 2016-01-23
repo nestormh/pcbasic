@@ -296,12 +296,12 @@ def exec_python(ins):
     while util.peek(ins) not in tk.end_line:
         parameter += ins.read(1)
 
-    try:
-        python = gwbasic2python.GWBasic2Python()
-        python.start_script(parameter)
-    except:
-        print "Error while launching script", parameter
-        raise
+    # try:
+    python = gwbasic2python.GWBasic2Python()
+    python.start_script(parameter)
+    # except:
+    #     print "Error while launching script", parameter
+    #     raise
 
     util.require(ins, tk.end_statement)
 

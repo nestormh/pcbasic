@@ -5,13 +5,14 @@ import var
 import vartypes
 import error
 import fp
+import itertools
+import numpy as np
 
 class GWBasic2Python(object):
     """ TODO """
 
     def __init__(self):
         """ TODO """
-        print "Initialized"
 
     def type_converter(self, v_val):
         if (v_val[0] == '%'):
@@ -27,34 +28,27 @@ class GWBasic2Python(object):
 
     def get_gwbasic_vars(self, dictionary):
         """ Read local variables """
+
+        # Single variables
         for v in state.basic_state.variables:
-
             v_val = self.type_converter(var.get_var(v))
-
-            # v_val = vartypes.pass_int_unpack(v_val)
-            print v, "=", v_val, "=>", type(v_val)
-
             dictionary[v] = v_val
 
-            # http://stackoverflow.com/questions/8028708/dynamically-set-local-variable-in-python
+        # Arrays
+        for v in state.basic_state.arrays:
+            v_val = state.basic_state.arrays[v]
 
-        # for v in state.basic_state.arrays:
-        #
-        #     print v
-        #
-        #     v_val = var.get_var_or_array(v, [])
-        #
-        #     # v_val = vartypes.pass_int_unpack(v_val)
-        #     print v, "=", v_val
-        #     print v_val[0]
-        #     array = v_val[1]
+            dimensions = v_val[0]
 
+            indexes = [list(xrange(d)) for d in dimensions]
+            indexes = list(itertools.product(*indexes))
 
-            # v_val = vartypes.pass_type_keep(v[-1], var.get_var(v))
-            # print v, "=", v_val
+            values = np.empty(dimensions)
+            for index in indexes:
+                values[index] = self.type_converter(var.get_array(v, list(index)))
 
-            # TODO: Hacer generico para cualquier tipo de datos (string)
-            # TODO: Capturar error de sintaxis
+            values = values.tolist()
+            dictionary[v] = values
 
     def start_script(self, file):
         variables_dictionary = dict([])
