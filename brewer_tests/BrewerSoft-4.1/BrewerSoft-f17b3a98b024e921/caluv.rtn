@@ -1,0 +1,17 @@
+10000 REM ************ cal.rtn 22/04/2012 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM         MKII/MKIII/MKIV Set Up and Repeat Auto Sequence mostly for DS calibrations
+55555 REM     !! NOTE: this routine will do (hp)hg only if the temperature changes between attempts !! 
+10020 REM
+10030 REM *************************************************************
+10500 DATA caluv
+10510 IF Q1%+Q3%+Q4%+Q5%<>4 THEN RETURN:REM return if not automatic
+10520 IF ED%=2 THEN ED%=3
+11000 '
+11001 ' *** Set up command sequence ***
+11002 '
+11010 UC%=0:JJ=0:QC=0:REM reset command counter to zero
+11230 CALUV%=1:QC=QC+1:G$(QC)="c"+"al"
+11240 QR=1
+11430 GOTO 3400
+65529 REM proper last line

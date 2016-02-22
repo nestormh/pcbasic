@@ -1,0 +1,127 @@
+10000 REM ************ ci.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM              MKII/MKIII/MKIV Lamp Scanning Routine
+10020 REM
+10030 REM                (SCI-TEC Instruments, March 1998)
+10040 REM
+10050 REM  See Also:
+10060 REM *************************************************************
+10070 REM
+10080 REM  This routine records a scan of the lamp port based on
+10082 REM    the Brewer model:
+10084 REM
+10085 REM    MKII:         286.5 to 325 nm
+10086 REM    MKIII/IV:     286.5 to 366/363 nm
+10087 REM    MKIV NO2:     434 to 437 nm (1 A)
+10090 REM
+10120 REM  Global Variables Referenced:
+10130 REM    DC(5,3) NDC(5,3) GI GS IT SP TI TIMER TM T1 VA ZERO
+10140 REM    A1$() CR$ DB$ DD$ G$() JD$ LO$ MC$ MP$ M5$ M8$ NO$
+10150 REM    O1$ TIME$ TR$ YE$ YF$
+10160 REM    DN% HF% MZ% NMZ% Q8% RM%
+10170 REM   
+10180 REM  Exits: 10520, 14730, 15030
+10190 REM
+10200 REM  Uses: 2090, 2450, 3220, 3230, 4450, 6610, 6630, 6650,
+10210 REM        6700, 7000, 8350, 9450, 9500, 9650, 9805, 9840
+10220 REM **************************************************************
+10230 REM  History: dd/mm/yy
+10240 REM  23/03/98 - Added support for new electronics
+10250 REM  14/07/95 - Several bug fixes; now handles standard MKIV's
+10260 REM  18/08/94 - MX%/MY%/MZ% confusion done away with
+10270 REM  04/08/94 - Fixed calculations, improved printing format
+10280 REM  04/07/94 - Added user prompt to select desired scan from
+10290 REM  a given selection
+10300 REM  30/06/94 - Combined CI routine to work with all Brewer
+10310 REM  models (MKII/MKIII/MKIV-O/MKIV-N), extended range
+10320 REM **************************************************************
+10500 DATA ci
+10510 IF DN%<>8 THEN RETURN
+10520 GOSUB 3220
+13000 '
+13001 ' *** Pick a Scan Resolution ***
+13002 '
+13010 REM *** Pick from 1, 2, 5 angstroms
+13020 CLS:LOCATE 10,SP
+13030 PRINT"Select a scan resolution from (1,2,5) angstroms: ";
+13040 A$="":TA=TIMER:DD=5
+13050 WHILE A$="" AND TA+10>TIMER AND HF%=0
+13060   A$=INKEY$:IF A$=Q2$ THEN HF%=1
+13070   IF A$<>"" AND A$<>"1" AND A$<>"2" AND A$<>"5" THEN A$="":REM disallow other keystrokes
+13080 WEND:IF HF%<>0 THEN RETURN
+13090 IF A$<>"" THEN DD=VAL(A$)
+14000 '
+14001 ' *** Take Lamp Observation ***
+14002 ' 
+14005 REM ** Note that SWV is set higher than MX if extended range switching is unneeded **
+14010 IF TYP$="mkii" THEN CX$="4":MN=2865:MX=3250:SWV=9999:GOTO 14020
+14012 IF TYP$="mkiii" THEN CX$="4":MN=2865:MX=3630:SWV=3500
+14014 IF TYP$="mkiv" AND MDD$="n2" THEN CX$="4":MN=4340:MX=4370:SWV=9999:DD=1
+14016 IF TYP$="mkiv" AND MDD$="o3" THEN CX$="4":MN=2865:MX=3630:SWV=3250
+14018 IF MDD$="o3" AND (ZERO+VAL(MC$))>3300 THEN CX$="4":MN=2865:MX=3250:SWV=9999
+14020 PRINT#4,"CI SCAN-INST #"+NO$+" * "+MP$+DB$+YE$+" * "+LO$+" * "
+14030 GOSUB 2450:GOSUB 4450:OPEN DD$+"dum.dta"FOR OUTPUT AS 8:PRINT#8,A1$(0)
+14040 PRINT#8,"CI SCAN-INST #"+NO$+" dt ";T1;CR$;" cy ";CX$;CR$;
+14610 GOSUB 6610:IF MDD$="n2" THEN GOSUB 6636 ELSE GOSUB 6630
+14615 IF MDD$="n2" THEN M5$="64" ELSE M5$=STR$(POFW2):REM     Make NOFW2 an instrument constant!
+14617 GOSUB 6650
+14620 TD=1500:GOSUB 7000:GOSUB 6700:M1$="0":GOSUB 9870
+14630 LOCATE ,SP:PRINT "4 - Director prism to lamp port":GOSUB 9650
+14640 IF HF%<>0 THEN 14730
+14650 M8$="-"+MC$:GOSUB 9805:IF MDD$="o3" THEN M8$=STR$(-ZERO) ELSE M8$="-"+STR$(ZERO-SWITCH%)
+14655 GOSUB 9805
+14660 B$="CI scan started at "+TIME$: PRINT#4,B$: GOSUB 3050
+14670 W1=MN:W2=MX:DW=DD:SQ=1:GOSUB 31000:IF HF%<>0 THEN 14700
+14680 REM
+14700 IF MDD$="o3" THEN M8$=STR$(ZERO+1) ELSE M8$=STR$(ZERO+1-SWITCH%)
+14705 GOSUB 9805
+14710 M8$="-1":GOSUB 9805:M8$=MC$:GOSUB 9805:GOSUB 9500
+14720 PRINT#8,"end":CLOSE 8
+14730 X$=MID$(STR$(MX%),2):IF MDD$="n2" THEN X$=MID$(STR$(NMX%),2)
+14740 IF TYP$="mkiv" THEN M5$=UF$:GOSUB 9800:O1$="M,6,"+X$:GOSUB 9450
+14750 IF HF%<>0 THEN PRINT#4,"CI scan aborted at ";TIME$:GOTO 15000
+14900 '
+14901 ' *** Record Data on ci File ***
+14902 '
+14910 B$=JD$+YF$+"."+NO$
+14920 PRINT#4,"CI scan finished at ";TIME$
+14930 FTMP$ = DD$+"CI"+B$: GOSUB 4900: SHELL "copy "+FTMP$+"+"+DD$+"dum.dta "+DD$+"dum2.dta":  SHELL "copy "+DD$+"dum2.dta "+FTMP$
+14940 PRINT#4,"CI";B$;" data file extended at ";TIME$
+15000 '
+15001 ' *** Turn Lamps Off ***
+15002 '
+15010 GOSUB 3230:IF RM%=0 THEN GOSUB 9840
+15020 IF G$(JJ+1)<>"lo" THEN GOSUB 9840
+15030 RETURN
+17000 '
+17001 ' *** Switch to Extended Range Operation (Slit #5) ***
+17002 '
+17010 SQ=5:B=DC(SQ,2):C=DC(SQ,3):IF MDD$="n2" THEN B=NDC(SQ,2):C=NDC(SQ,3)
+17020 DQ$=STR$(SQ+1)
+17030 IF TYP$<>"mkiii" THEN O1$="M,6,50":GOSUB 9450:M5$=STR$(VAL(M5$)+128):GOSUB 9800
+17040 RETURN
+31000 '
+31001 ' *** Scan w1 to w2 step dw on slit sq ***
+31002 '
+31010 O1$="R,1,1,40;O":GOSUB 9450:DARK=VA/40*VAL(CX$)
+31020 PRINT#8,USING " DARK = #####.### ";DARK
+31030 PRINT#4,USING " DARK = #####.### ";DARK
+31040 PRINT,  USING " DARK = #####.### ";DARK
+31050 B=DC(SQ,2):C=DC(SQ,3):IF MDD$="n2" THEN B=NDC(SQ,2):C=NDC(SQ,3)
+31060 DQ$=STR$(SQ+1)
+31070 FOR WV=W1 TO W2 STEP DW
+31080   GOSUB 2090:IF HF%<>0 THEN PRINT#4,"CI scan aborted":PRINT#8,"aborted";CR$;:WV=W2:RETURN
+31090   IF WV>SWV THEN GOSUB 17000:SWV=9999:REM make sure that we switch only once
+31100   IF MDD$="o3" THEN SN$=STR$(INT((-B+SQR(B*B-4*(DC(SQ,1)-WV)*C))/2/C))
+31110   IF MDD$="n2" THEN SN$=STR$(INT((-B+SQR(B*B-4*(NDC(SQ,1)-WV)*C))/2/C))
+31120   SNN$=STR$(INT(VAL(SN$)*GS+GI)):REM *** Used only for MKIII ***
+31130   IF TYP$="mkiii" THEN O1$="M,10,"+SN$+SE$+"M,"+N9$+","+SNN$+";R,"+DQ$+","+DQ$+","+CX$+";O"
+31140   IF TYP$<>"mkiii" THEN O1$="M,10,"+SN$+";R,"+DQ$+","+DQ$+","+CX$+";O"
+31150   TI=TIMER*60:TM=TI:GOSUB 9450:TM=INT((TM+TI)/72)/100
+31160   VB=VA:CY=VAL(CX$):F(1)=DARK:GOSUB 8350
+31200   PRINT#8,USING "####.##  ####  #####  #######.##  #######.##";TM;WV;VAL(SN$);VB;VA
+31210   PRINT#4,USING "####.##  ####  #####  #######.##  #######.##";TM;WV;VAL(SN$);VB;VA
+31220   PRINT,  USING "####.##  ####  #####  #######.##  #######.##";TM;WV;VAL(SN$);VB;VA
+31230 NEXT
+31240 RETURN
+65529 REM proper last line

@@ -1,0 +1,202 @@
+10000 REM ************ dsp.rtn 28/04/2014 11:25:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM         MKII/MKIII/MKIV Dispersion Test Routine
+55555 REM
+55555 REM            (SCI-TEC Instruments, October 1995)
+55555 REM             (Kipp en Zonen, June 2010)
+55555 REM              IOS/EC  November 2010
+55555 REM   See Also: dsp1.rtn
+55555 REM *******************************************************
+55555 REM
+55555 REM  This routine sets up a default or custom DSP scan.
+55555 REM  A custom scan can specify what range of slits to use,
+55555 REM  the set of frequencies (3 to 9) and associated
+55555 REM  neutral density and lamp source.
+55555 REM
+55555 REM  Global Variables Referenced:
+55555 REM    DC()  DN%  ER%  G$  MDD$  NDC()  QC  QR  SP  TYP$
+55555 REM
+55555 REM  Exits: 10530, 14050
+55555 REM
+55555 REM  Uses:  2000, 2030, 7220, 9650
+55555 REM
+55555 REM ********************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  21/04/12 - Fixed some set up values
+55555 REM  17/05/11 - Added NO2 lines. Volodya
+55555 REM  16/05/11 - Changed the maximum number of lines to 29. Volodya
+55555 REM  02/06/10 - Updated MKIII to ext lamps of Zn, HG, CD and IN - supports extra lines - automatic waiting - selection of light source for all lamps - work in progress only tested on mkIII
+55555 REM  22/08/96 - removed 302 line and added 308 to MKII
+55555 REM  19/04/95 - Better scan handling procedure
+55555 REM  18/11/94 - Autodetection of slit 0 data added
+55555 REM  14/09/94 - New method for passing slit ranges
+55555 REM  implemented (up to nine wavelengths)
+55555 REM  05/07/94 - Handles MKII/MKIII/MKIV automatically,
+55555 REM ********************************************************
+55555 '
+10460 LSN(1)=0:HSN(1)=0:WV(1)=0:AN(1)=0
+10462 ERASE LSN,HSN,WV,AN
+10465 DIM LSN(15),HSN(15),WV(15),AN(15)
+10500 DSPL$(1)="Hg":DSPL$(2)="Cd":DSPL$(3)="Zn":DSPL$(4)="In":DSPL$(0)="custom configuration"
+55555 ' *** Check Brewer Mode First, Set Slit 0 Autodetect ***
+10502 '
+10510 DATA dsp
+10520 IF MDD$ = "o3" THEN 10600
+10530 B$="This version of DSP is O3 mode only, to do NO2 mode DSP run DSPN2":PRINT #4,B$: PRINT B$
+10540 X=1: GOSUB 7220:ERASE LSN,HSN,WV,AN: RETURN
+10600 FLAG = 1: IF DC(0,1) <> 0 THEN FLAG = 0
+11000 '
+11000 ' *** Ask for Predetermined/Custom Parameter Set ***
+11000 '
+11010 PRINT CL$: LOCATE 4,SP: PRINT "Choose lamp type:"
+11100 PRINT " ##    ###";YE$;NO$;
+11100 PRINT "     1-Mercury lamp scan"
+11110 PRINT "         (Lines 1 to ";: IF TYP$ = "mkii" THEN PRINT "2)" ELSE PRINT "3)"
+11120 PRINT "     2-Cadmium lamp scan"
+11130 PRINT "         (Lines ";: IF TYP$ = "mkii" THEN PRINT "3 to 5)" ELSE PRINT "4 to 9)"
+11180 PRINT "     3-Zinc lamp scan"
+11190 PRINT "         (Lines ";: IF TYP$ = "mkii" THEN PRINT "6 to 8)" ELSE PRINT "10 to 12)"
+11200 PRINT "     4-Indium lamp scan"
+11210 PRINT "         (Lines ";: IF TYP$ = "mkii" THEN PRINT "9 to 10)" ELSE PRINT "13 to 14)"
+11290 PRINT "     0-Custom (manually entered) lamp scan"
+11300 A$=INKEY$: IF A$=CR$ OR A$=Q2$ THEN ERASE LSN,HSN,WV,AN:RETURN
+11310 IF A$="" OR A$<"0" OR A$>"8" THEN 11300
+11320 VC = VAL(A$)
+11330 IF VC = 0                       THEN GOSUB 24000: GOTO 11700
+11340 IF Q8%=0 AND VC<>1 THEN GOTO 11435
+55555 ' Asking for a warm up option
+11360 PRINT CL$: LOCATE 5,SP:
+11365 PRINT "Would you like to have a 10 minute lamp warm up? - Press r for previous menu:"
+11370 PRINT "     y-Yes, schedule the warm up"
+11375 PRINT "     n-No, don't wait, start the scans"
+11385 GOSUB 2000: IF B$="r" goto 11000
+11390 IF B$<>"y" AND B$<>"Y" AND B$<>"n" AND B$<>"N" THEN 11360
+11392 IF B$="y" OR B$="Y" THEN W$="w2" ELSE W$="du"
+11400 PRINT CL$: LOCATE 5,SP:
+11405 PRINT "Select light source - Press r for previous menu:"
+11410 PRINT "     1-Quartz window"
+11420 IF Q8%<>0 THEN PRINT "     2-UVB dome"
+11430 IF VC=1 OR VC=5 THEN PRINT "     0-Internal Mercury lamp":
+11431 GOSUB 2000: IF B$="r" goto 11000
+11432 IF B$="" OR B$<"0" OR B$>"2" OR (B$="0" AND (VC<>1 AND VC<>5)) OR (B$="2" AND Q8%=0 AND TYP$="mkii") THEN 11400
+11433 IF B$="r" goto 11000
+55555 REM ' This routines supports 15 lines
+11435 FOR I = 1 TO 15
+11440   AN(I)=ER%*1/2+HC%:DSPP$="quartz window": IF B$="2" THEN AN(I)=ZU%:DSPP$="UV port"
+11450   L$="du":IF B$="0" THEN AN(I)=0:DSPP$="internal lamp":L$="lo"
+11455 NEXT
+55555   REM IF AN(I)=0 AND B$<>"i" AND B$<>"I" THEN 24170
+11550 IF (TYP$ = "mkii" OR ZERO+VAL(MC$)> 3000) AND VC<5 THEN GOSUB 20000: GOTO 11700
+11560 GOSUB 21000
+11700 GOSUB 30000: IF A$<>"a" AND A$<>"A" THEN 11000
+14000 '
+14000 ' *** Prepare to Run Dispersion Test ***
+14000 '
+14010 PRINT CL$: LOCATE 10, SP: PRINT "Please make sure the dispersion lamp is on"
+14020 LOCATE , SP: PRINT "     ******"
+14030 GOSUB 9650: QR = 1
+14040 IF TYP$= "mkiii" THEN QC = 8: G$(1) = "h" + "p": G$(2) = "h" + "g": G$(3) = L$ : G$(4) = W$ :  G$(5) = "dsp" + "1": G$(6) = "h" + "p": G$(7) = "h" + "g": G$(8) = "check"+"hg"
+14050 IF TYP$<>"mkiii" AND VC<5 THEN QC = 6: G$(1) = "h" + "g": G$(2) = L$ : G$(3) = W$: G$(4) = "dsp" + "1": G$(5) = "h" + "g": G$(6) = "check"+"hg"
+14055 B$="Doing dispersion test with "+DSPL$(VC)+" ("+DSPP$+")":GOSUB 3050:PRINT #4, B$
+14060 GOTO 3400
+20000 '
+55555 ' *** Set Up the Parameters as Appropriate for a MKII Brewer ***
+55555 ' select lamp type***
+20010 IF VC=1 THEN 20020
+20011 IF VC=2 THEN 20500
+20012 IF VC=3 THEN 20820
+20013 IF VC=4 THEN 20900
+55555 ' mercury lamp***
+20020   LN1 = 1: LN2 = 2
+20030   LSN(1) = FLAG:   LSN(2) = FLAG:
+20040   HSN(1) = 2:      HSN(2) = 5:
+20050   WV(1)  = 2893.60:WV(2)  = 2967.28:
+20080   RETURN
+55555 ' Cadmium lamp***
+20500   LN1 = 3: LN2 = 5
+20510   LSN(3) = FLAG:   LSN(4) = FLAG:   LSN(5) = 1
+20520   HSN(3) = 5:      HSN(4) = 5:      HSN(5) = 5
+20530   WV(3) = 3080.822:WV(4) = 3133.167:WV(5) = 3261.055
+20570   RETURN
+55555   ' Zinc lamp***
+20820   LN1 = 6: LN2 = 8
+20830   LSN(6) = FLAG:   LSN(7) = FLAG:   LSN(8) = 4
+20840   HSN(6) = 5:      HSN(7) = 5:      HSN(8) = 5
+20850   WV(6)  = 3018.36:WV(7)  = 3035.78:WV(8)  = 3282.33
+20880   RETURN
+20900 ' Indium lamp***
+20900   LN1 = 9: LN2 = 10
+20920   LSN(9) = FLAG:   LSN(10) = FLAG
+20930   HSN(9) = 5:      HSN(10) = 5
+20940   WV(9)  = 2932.63:WV(10)  = 3039.36
+20970   RETURN
+21000 '
+55555 ' *** Set Up the Parameters as Appropriate for a MKIII/MKIV Brewer ***
+55555 ' select lamp type***
+21010 IF VC=1 THEN 21020
+21011 IF VC=2 THEN 21500
+21012 IF VC=3 THEN 21820
+21013 IF VC=4 THEN 21900
+55555 ' mercury lamp***
+21020   LN1 = 1: LN2 = 3
+21030   LSN(1) = FLAG:   LSN(2) = FLAG:      LSN(3) = FLAG
+21040   HSN(1) = 1:      HSN(2) = 3:         HSN(3) = 5
+21050   WV(1)  = 2893.60:WV(2)  = 2967.28:  :WV(3)  = 3341.48
+21080   RETURN
+55555 ' Cadmium lamp***
+21500   LN1 = 4: LN2 = 9
+21510   LSN(4) = FLAG:   LSN(5) = FLAG:   LSN(6) = FLAG:    LSN(7) =  FLAG:     LSN(8) = 1:        LSN(9) = 5
+21520   HSN(4) = 5:      HSN(5) = 5:      HSN(6) = 5:       HSN(7) = 5:         HSN(8) = 5:        HSN(9) = 5
+21530   WV(4) = 3080.822:WV(5) = 3133.167:WV(6) = 3261.055: WV(7)  = 3403.652:  WV(8)  = 3499.952: WV(9)  = 3611.51
+21570   RETURN
+55555 ' Zinc lamp***
+21820   LN1 = 10: LN2 = 12
+21830   LSN(10) = FLAG:   LSN(11) = FLAG:      LSN(12) = FLAG
+21840   HSN(10) = 5:      HSN(11) = 5:         HSN(12) = 5
+21850   WV(10)  = 3018.36:WV(11)  = 3035.78:   WV(12)  = 3282.33
+21880   RETURN
+21900 ' Indium lamp***
+21900   LN1 = 13: LN2 = 14
+21920   LSN(13) = FLAG:   LSN(14) = FLAG
+21930   HSN(13) = 5:      HSN(14) = 5
+21940   WV(13)  = 2932.63:WV(14)  = 3039.36
+21970   RETURN
+24000 '
+55555 ' *** Prompt User for Manual Parameter Settings
+55555 '
+24010 PRINT CL$: LOCATE 10,SP: PRINT "Enter first line number to scan (ie. line #1): ";: GOSUB 2000
+24020 IF VB < 1 OR VB > 14 THEN 24010
+24030 LN1 = VB
+24040 LOCATE 11,SP: PRINT "Enter last line number to scan:                ";: GOSUB 2000
+24050 IF VB < LN1 OR VB > 14 THEN 24040
+24060 LN2 = VB: FOR I = LN1 TO LN2
+55555   REM PRINT CL$
+24110   LOCATE ,5:PRINT "Enter starting slit for line #"; I;":   ";:GOSUB 2000:LSN(I)=VB
+24120   IF VB < FLAG OR VB > 5 THEN PRINT "  No DSP constants for that slit - reenter": GOTO 24110
+24130   LOCATE ,5:PRINT "Enter ending slit for line #"; I;":     ";:GOSUB 2000:HSN(I)=VB
+24140   IF VB < FLAG OR VB > 5 THEN PRINT "  No DSP constants for that slit - re-enter": GOTO 24130
+24150   LOCATE ,5:PRINT "Enter wavelength of line #"; I;":       ";:GOSUB 2000:WV(I) =VB
+24170   LOCATE ,5:PRINT "Enter source for scanning line #"; I
+24180   LOCATE ,5:PRINT "   I:  internal lamp"
+24190   LOCATE ,5:PRINT "   Q:  external source (through quartz window)"
+24200   LOCATE ,5:PRINT "   U:  external source (through UVB dome)       :";:GOSUB 2000
+24210   AN(I)=0:DSPP$="internal lamp": IF B$="q" OR B$="Q" THEN AN(I)=ER%*1/2+HC%:DSPP$="quartz window"
+24220   IF B$="u" OR B$="U" THEN AN(I)=ZU%:DSPP$="UV port"
+24230   IF AN(I)=0 AND B$<>"i" AND B$<>"I" THEN 24170
+24240 NEXT
+24250 RETURN
+30000 '
+55555 ' *** Display the Parameters as Selected and Verify ***
+30002 '
+30010 PRINT CL$: LOCATE 7,SP: PRINT "User Selections"
+30020 LOCATE 8,SP-4: PRINT "LN  Start  End  Wavelength  Neutral Density   Lamp": PRINT
+30030 FOR I = LN1 TO LN2: LOCATE 9+I-LN1,SP-4
+30040   PRINT USING "##   ##    ##     ####.##        ###         ";I;LSN(I);HSN(I);WV(I);0;
+30060   LOCATE 9+I-LN1,SP+41: IF AN(I)=0 THEN PRINT "Int":GOTO 30100
+30070     IF AN(I)=>ER%*2/3 THEN PRINT "Ext:UVB":REM partway between 1/2 and 3/4
+30080     IF AN(I)< ER%*2/3 THEN PRINT "Ext:Qtz"
+30100 NEXT
+30110 LOCATE 20,SP: PRINT "Enter A to accept these values, R to respecify"
+30120 GOSUB 2030: RETURN
+55555 '
+65529 REM proper last line

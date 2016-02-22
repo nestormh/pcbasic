@@ -1,0 +1,6 @@
+10000 REM ************ auto-on.rtn 05/03/2011 19:47:08 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 data auto-on
+20000 GOSUB 2696
+30000 return
+65529 rem dummy

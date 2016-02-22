@@ -1,0 +1,135 @@
+10000 REM ************ fv.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM            MKII/MKIII/MKIV Direct Sun Observations
+10020 REM
+10030 REM            (SCI-TEC Instruments, September 1995)
+10040 REM
+10060 REM *************************************************************
+10070 REM
+10080 REM  Direct sun scan
+10090 REM
+10220 REM  Global Variables Referenced:
+10230 REM    MS() DS% HF% UC% ND TD XN
+10240 REM    CL$ CY$ CZ$ M5$ MDD$ SQ$ TR$ TYP$ ZS$
+10250 REM
+10260 REM  Exits: 13020
+10270 REM
+10280 REM  Uses:  2450, 3200, 3220, 4200, 6610, 6630, 6636, 6650,
+10290 REM         6690, 7000, 7500, 7750, 8000, 8200, 9650, 9670,
+10300 REM         9700, 9900
+10310 REM
+10500 REM **************************************************************
+10501 REM  History: dd/mm/yy
+10507 REM 24 8 98 julian use azimuth for morning/afternoon.
+10508 REM 31 3 98 julian add fvdone to ed.rtn
+10509 REM 14 1 98 change to steps and add linefit to correct zenith.
+10510 REM 6 1 98 julian adapt for schedule.
+10511 REM 8/1/97 -julian. add questions about filters.
+10512 REM  31/12/96 julian- corrects movement.
+10515 REM  27/11/96 - measures field of view of brewer. -julian
+10520 REM  27/09/95 - Aborts if counts are too high, fixed home key
+10530 REM  abort and temperature check
+10540 REM  20/12/94 - Rewritten by TM
+10550 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA fv
+11020 TR$="d"+"s":UC%=0
+11030 IF FVDONE<>1 AND M2>2 AND M2<3 AND ZC<0 THEN FVDONE=1:GOTO 11050
+11033 IF FVDONE<>2 AND M2<1.5 THEN FVDONE=2:GOTO 11050
+11035 IF FVDONE<>3 AND M2>2 AND M2<3 AND ZC>0 THEN FVDONE=3:GOTO 11050
+11040 'IF RM%<>0 THEN RETURN
+11050 GOSUB 6610:IF MDD$="o3" THEN GOSUB 6630 ELSE GOSUB 6636   'Filter#1 to 1 or 4
+11060 M5$=SQ$:IF VAL(M5$)<192 AND M2<2 THEN M5$="192"
+11065 GOSUB 6650                    'Filter#2 to SQ$
+11070 GOSUB 6690:GOSUB 7750                 'Iris closed, AZ/ZE to sun
+11080 LOCATE ,SP:PRINT "4 - Point Brewer at sun"
+11090 GOSUB 9650:REM GOSUB 7500          'Wait until ready, test intensity, not know, but later
+11100 REM **************** ask for details about filters.
+11110 REM input "Steps for iris (250=open)?",stps3
+11120 REM if (stps3>250) OR (stps3<0) THEN print"wrong steps for iris":GOTO 11110
+11130 REM input "what filter for #1(0:open,256:quarz,320=polarizer)?",stps4
+11140 REM if (stps4<0) OR (stps4>320) then print" wrong steps for #1":GOTO 11130
+11150 REM print"filter #2 open":stps5=0
+11200 REM O1$="M,3,"+STR$(stps3)+":M,4,"+STR$(stps4)+":M,5,0":GOSUB 9400
+12000 '
+12001 ' *** Take Set of Observations ***
+12002 '
+12010 REM GOSUB 2450:CZ$=CY$:GOSUB 9700
+12020 REM GOSUB 8000:MS(0)=11:DS%=0
+12030 REM SQ$=M5$
+12040 REM DS%=DS%+1:GOSUB 20000
+12050 REM IF HF%=1 OR DS%=5 THEN 13000
+12060 REM GOTO 12040
+12070 B$=JD$+YF$+"."+NO$
+12075 OPEN DD$ + "fv"+B$ FOR APPEND AS 8  ' open file for output
+12080 print #8,"Field of view Scan started at ";TIME$; "filter:";STR$(VAL(M5$)/64);
+12085 print "Field of view Scan -6- started at ";TIME$
+12086 REM dum$="azimuth,zenith,iris="+STR$(stps3)+",#1="+STR$(stps4)+",#2=0, 3400nm"
+12087 REM print#8,dum$
+12090 CZ$="5":WL$="6":WU$="6":GOSUB 9880:PRINT #8, "CY ";CZ$;"SL ";VAL(WL$)-1
+12095 GOSUB 2450 ' get temp
+12100 REM do scan in azimuth from - to + and zenith angle.
+12105 REM M8$=MC$:GOUB 9805:M8$=STR$(-ZERO):GOSUB 9805
+12017 REM WV=3400:SQ=SQM%:GOSUB 8500:O1$="X,"+STR$(M1)+","+STR$(M2):GOSUB 9450
+12109 GOSUB 9670:REM prints start of measurement
+12115 IF HF%<>0 THEN 13000
+12120 track=1:nju=0:ZJU=0:FOR AJU=-160 to 160 STEP 20:REM scan in azimuth.
+12125  nju=nju+1:GOSUB 20000
+12130 NEXT AJU
+12132 GOSUB 30000
+12134 PRINT #4,"Azimuth from FV.rtn at steps and Intens:";I;" ";MAZ
+12137 PRINT#4,"Old Azimuth correction:";NC%;" New would be ";NC%+I
+12238 REM IF ABS(I)>4 AND MAZ>20000 THEN NC%=NC%+I:PRINT #4,"New Azimuth NC%:";NC%
+12140 A1$(IO)=LF$+"fv"+CR$+TIME$+CR$+M5$+CR$+"az"+CR$+STR$(AZ)+CR$+STR$(I)+CR$+STR$(MAZ)
+12145 GOSUB 8000:REM clear MS, S
+12150 track=2:AJU=0:nju=0:FOR ZJU=-40 to 40 STEP 4 ' in steps now
+12160  nju=nju+1:GOSUB 20000
+12170 NEXT ZJU
+12180 GOSUB 30000
+12190 PRINT #4,"Zenith from FV.rtn at steps and Intens:";I;" ";MAZ
+12200 PRINT#4,"Old zenith correction:";HC%;" New would be ";HC%+I
+12202 A1$(IO)=A1$(IO)+CR$+"ze"+CR$+STR$(ZA)+CR$+STR$(I)+CR$+STR$(MAZ)+CR$
+12205 REM IF MAZ>20000 THEN FVDONE=1 ELSE FVDONE=0
+12210 REM IF ABS(I)>4 AND MAZ>20000 THEN HC%=HC%+I:PRINT #4,"New Zenith HC%:";HC%
+13000 '
+13001 ' *** Clean Up and Exit ***
+13010 GOSUB 3200:IO=IO+1
+13050 IF HF%<>0 THEN PRINT "Scan aborted" else PRINT "Scan Finished"
+13060 REM M8$=MC$:GOSUB 9805
+13070 REM GOSUB 4200:GOSUB 3220
+13080 GOSUB 7800:GOSUB 7950 ' restore pointing to sun.
+13090 CLOSE 8
+13100 RETURN
+20000 '
+20001 ' *** Direct Sun Observation ***
+20002 '
+20010 GOSUB 7800    ' get new AZ% and ZE%
+20015 corraz=SIN(ZA*3.1415926/180):REM correct for spherical movement
+20017 if corraz=0 THEN corraz=1
+20020 AZC%=AZC%+(AJU/corraz) '*SR%/360  ' to get steps  30/3/98 AJU now steps.
+20030 ZEC%=ZEC%+ZJU   '*ER%/360  new 14 1 98
+20040 GOSUB 7950   ' move motors to updated position, while tracking sun
+20050 O1$="R,"+WL$+","+WU$+","+CZ$:GOSUB 9400
+20060 WT=(WU-WL+1)*VAL(CZ$)*18/7*IT
+20070 T0=TIMER*60+WT/120
+20080 TI=TIMER*60:TS=TI/7200:TD=200+WT*60:GOSUB 7000
+20090 GOSUB 9900  ' get data when ready data in F(WL)
+20100 PRINT #8,USING"####.###   ";AJU;ZJU;AZ;ZA;:PRINT #8,F(WL)/val(CZ$)
+20110 PRINT USING"####.###   ";AJU;ZJU;AZ;ZA;:PRINT F(WL)/val(CZ$)
+20115 if track=2 THEN S(nju)=ZJU:MS(nju)=F(WL)/VAL(CZ$)
+20117 if track=1 THEN S(nju)=AJU:MS(nju)=F(WL)/VAL(CZ$)
+20120 RETURN
+30000 REM calculate maximum from slopes at half-point or so.MS(I)=VA and S(I)=deg
+30010 MAZ=0:FOR I=1 to nju
+30020  IF MS(I)>MAZ THEN MAZ=MS(I):IM=I:REM find maximum
+30030 NEXT I
+30040 IZ=IM
+30050 IF MS(IZ)>MAZ*0.8 THEN IZ=IZ-1:IF IZ<0 THEN IZ=0 ELSE GOTO 30050
+30060 I1=IZ:IZ=IM
+30070 IF MS(IZ)>MAZ*0.8 THEN IZ=IZ+1:IF IZ>nju THEN IZ=nju ELSE GOTO 30070
+30080 I4=IZ
+30120 I=INT((S(I4)+S(I1))/2+0.5)
+30150 RETURN
+65529 REM *** dummy line ***

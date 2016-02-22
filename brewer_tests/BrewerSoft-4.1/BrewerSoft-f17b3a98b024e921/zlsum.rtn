@@ -1,0 +1,163 @@
+10000 REM ************ zlsum.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM             MKII/MKIII/MKIV Standard Lamp Summary
+10020 REM
+10030 REM               (SCI-TEC Instruments, July 1995)
+10040 REM
+10060 REM *************************************************************
+10070 REM
+10080 REM  This routine outputs a summary list of zenith ext. lamp
+10090 REM  observations for the current day.
+10100 REM
+10220 REM  Global Variables Referenced:
+10230 REM    NTC() NTQ() TC() TQ()
+10240 REM    A1 B2 NA1 NB2
+10250 REM    CL$ DC$ DD$ JD$ L1$ L2$ LO$ MDD$ NO$ TYP$ YE$
+10260 REM
+10270 REM  Exits: 11050, 12380, 31020
+10280 REM
+10290 REM  Uses:  3100, 5400, 7220, 8000, 8050, 8100, 8150
+10300 REM
+10500 REM **************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  21/07/95 - Change to avg file format
+10530 REM  12/01/95 - Fixed TOBS count, fixed temperature correction
+10540 REM  formulas (A->TQ), now uses B file
+10550 REM  08/12/94 - Complete rewrite - TM
+10560 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA zlsum
+11020 GOSUB 5400
+11030 TOBS=0:REM  total observations
+12000 '
+12001 ' *** Open Brewer Data File and Print Header for Summary ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"B"+JD$+YE$+"."+NO$ FOR INPUT AS 8
+12030 ON ERROR GOTO 31000
+12040 IF EOF(8) THEN 12200
+12050   INPUT#8,A$:IF A$="zl" THEN 12300
+12060   GOTO 12040
+12200 PRINT "No standard lamp data available for this day.":X=1:GOSUB 7220
+12210 ON ERROR GOTO 3100:CLOSE 8:RETURN
+12300 MDD2$=MDD$:REM store away for later
+12320 PRINT#4,CHR$(12):PRINT CL$:PRINT "Position paper to top of page":GOSUB 9650
+12330 PRINT#4,"Summary of Brewer Zenith Ext. lamp measurements for ";DC$;" (";JD$;")"
+12340 PRINT#4,:PRINT#4,"Measurements made at ";LO$;" with instrument # ";NO$
+12350 PRINT#4,USING "     Latitude            = \        \     Longitude           = \        \";L1$;L2$
+12360 MDD$="zl":GOSUB 12500
+12370 'IF TYP$="mkiv" THEN TOBS=0:MDD$="n2sl":GOSUB 12500
+12380 MDD$=MDD2$:RETURN:REM restore and quit
+12500 '
+12501 ' *** Prepare for Summary ***
+12502 '
+12510 CLOSE 8:OPEN DD$+"B"+JD$+YE$+"."+NO$ FOR INPUT AS 8
+12520 PRINT#4,
+12530 IF MDD$="zl" THEN   PRINT#4,"Type Time(GMT) Temp  R1    R2    R3    R4    R5  SDR5  R6  SDR6      SO    SDSO"
+12540 'IF MDD$="n2sl" THEN PRINT#4,"Type Time(GMT) Temp  R1    R2    R3    R4    R5    F-RATIO SDFR     F1    SDF1"
+12600 PRINT#4,
+13000 '
+13001 ' *** Process Standard Lamp Summary Data ***
+13002 '
+13010 GOSUB 8000:TQH=-60:TQL=60:MS(0)=7:T%=0:'IF MDD$="n2sl" THEN MS(0)=13
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$:IF A$="inst" THEN GOSUB 25000
+13120   IF A$<>"summary" THEN 13100
+13130   INPUT#8,H$,A$,A$,A$,ZA,MU,TQ,TY$,FL$
+13140   IF TY$<>MDD$ OR TQ=-30 THEN 13100
+13150   TOBS=TOBS+1
+13160   PRINT#4,RIGHT$(TY$,2);RIGHT$("  "+FL$,2);RIGHT$("  "+H$,10);
+13170   PRINT#4,USING " ###";TQ;
+13180   IF TQ<TQL THEN TQL=TQ
+13190   IF TQ>TQH THEN TQH=TQ
+13200   'IF TY$="n2sl" THEN 13600
+13300     FOR I=1 TO 3
+13310       INPUT#8,A$:MS(I)=INT(VAL(A$)+T%*TQ*(TQ(I+1)-TQ(5)-TC(I+1)+TC(5))+.5)
+13320       PRINT#4,USING"######";MS(I);
+13330     NEXT
+13340     INPUT#8,A$:MS(4)=INT(VAL(A$)+T%*TQ*(TQ(5)-TQ(6)-TC(5)+TC(6))+.5)
+13350     PRINT#4,USING"######";MS(4);
+13360     INPUT#8,A$:MS(5)=INT(VAL(A$)+T%*TQ*(TQ(0)-TC(0))+.5)
+13370     PRINT#4,USING"######";MS(5);
+13380     INPUT#8,R6,F1,A$,A$,A$,A$,A$,SDR5,SDR6,SDF1
+13390     MS(6)=INT(R6+T%*TQ*(TQ(1)-TC(1))+.5):MS(7)=F1
+13400     PRINT#4,USING"####";SDR5;:PRINT#4,USING"######";MS(6);
+13410     PRINT#4,USING"####  ######## ######";SDR6;F1;SDF1
+13420     IF SDR5<50 AND SDR6<100 THEN GOSUB 8050
+13430     GOTO 13100
+13600     FOR I=1 TO 5
+13610       INPUT#8,A$:MS(I)=VAL(A$)+T%*TQ*(NTQ(I+1)-NTC(I+1))
+13620       PRINT#4,USING"######";MS(I);
+13630     NEXT
+13640     INPUT#8,FR,F1,A$,A$,A$,A$,A$,A$,SDFR,SDF1
+13650     MS(6)=INT(FR+T%*TQ*(NTQ(1)-NTC(1))+.5):MS(7)=F1
+13660     PRINT#4,USING"    ######";MS(6);
+13670     PRINT#4,USING"####  ######## ######";SDFR;F1;SDF1
+13680     IF SDFR<50 THEN GOSUB 8050
+13690     GOTO 13100
+14000 '
+14001 ' *** Close Brewer File and Print Out Summary Data ***
+14002 '
+14010 PRINT#4,:CLOSE 8:GOSUB 22000
+14020 IF S(0)>0 THEN GOSUB 23000:PRINT#4,USING "     ###  observations.";TOBS:GOTO 15000
+14100 PRINT#4,
+14110 PRINT#4,"***      Insufficient data to calculate      ***"
+14120 PRINT#4,"***  statistics for this day's observations. ***"
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 ON ERROR GOTO 3100
+15020 RETURN
+22000 '
+22001 ' *** Print Daily Mean Values ***
+22002 '
+22010 GOSUB 8100:IF S(0)=0 THEN RETURN
+22200   PRINT#4,"    Daily means:  ";
+22210   FOR I=1 TO 5:PRINT#4,USING "######";S(I);:NEXT:PRINT#4,USING "    ######      ########";S(6);S(7)
+22220   PRINT#4,"    Standard dev: ";
+22230   FOR I=1 TO 5:PRINT#4,USING "######";S(I+15);:NEXT:PRINT#4,USING "    ######      ########";S(21);S(22)
+22240 RETURN
+23000 '
+23001 ' *** Add Daily Mean Values to Average Files ***
+23002 '
+23010 ON ERROR GOTO 32000
+23020 AVGFILE$="ZLOAVG":'IF MDD$="n2sl" THEN AVGFILE$="SLNAVG"
+23100 CLOSE 6:OPEN DD$+AVGFILE$+"."+NO$ FOR APPEND AS #6
+23110   REM  low temp  high temp  good obs  readings(5)  ratios(2)  std.dev(5)  std.dev(2)
+23120   PRINT#6,JD$;YE$;
+23130   PRINT#6,USING "###";TQL;TQH;S(0);
+23140   FOR I=1 TO 6:PRINT#6,USING "######";S(I);:NEXT
+23150   PRINT#6,USING "####";S(7);
+23160   FOR I=16 TO 21:PRINT#6,USING "###";S(I);:NEXT
+23170   PRINT#6,USING "###";S(22):CLOSE 6
+23200 ON ERROR GOTO 31000
+23210 RETURN
+25000 '
+25001 ' *** Reads in Temperature Coefficients when Data was Recorded ***
+25002 '
+25010 FOR I=2 TO 6:INPUT#8,TQ(I):NEXT:FOR I=1 TO 19:INPUT#8,A$:NEXT
+25020 INPUT#8,TQ(7),NTQ(7):FOR I=2 TO 6:INPUT#8,NTQ(I):NEXT
+25030 TQ(0)=TQ(2)-TQ(5)-3.2*(TQ(5)-TQ(6))
+25040 TQ(1)=TQ(3)-TQ(5)-.5*(TQ(4)-TQ(5))-1.7*(TQ(5)-TQ(6))
+25050 NTQ(1)=.1*NTQ(2)-.59*NTQ(3)+.11*NTQ(4)+1.2*NTQ(5)-.82*NTQ(6)
+25060 T%=1:RETURN
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No Brewer (B) file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 IF ERR<24 OR ERR>27 THEN MDD$=MDD2$:REM restore mode
+31020 GOTO 3100
+32000 '
+32001 ' *** Error Handler for Average File ***
+32002 '
+32010 IF ERR=53 AND ERL=23040 THEN RESUME 23100
+32020 IF ERR=53 AND ERL=24040 THEN RESUME 24100
+32030 GOTO 31000
+65529 REM proper last line

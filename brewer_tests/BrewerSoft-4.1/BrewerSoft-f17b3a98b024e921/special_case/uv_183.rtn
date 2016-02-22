@@ -1,0 +1,241 @@
+10000 REM ******************* uv routine 12/09/05 ********************
+10010 REM               MKII/MKIII/MKIV General UV Scan
+10020 REM
+10030 REM            (SCI-TEC Instruments, November 1999)
+10040 REM
+10050 REM ************************************************************
+10070 REM
+10080 REM  This routine performs a UV-B scan covering the range as
+10090 REM  found in the following chart:
+10100 REM
+10110 REM  Model   Slit #1 Range   Slit #5 Range
+10120 REM
+10130 REM  MKII    290   - 325 nm        -        except 'ua' start 286.5
+10140 REM  MKIII   286.5 - 350 nm  350 - 363 nm
+10150 REM  MKIV    286.5 - 325 nm  325 - 363 nm
+10160 REM
+10170 REM  On the MKIV, FW#3 is also switched to the open position
+10180 REM  (50) during the slit change.  FW#2 is also switched to
+10190 REM  a higher neutral density filter position.
+10200 REM
+10210 REM  The variable MDD2$ is used to indicate "standard",
+10220 REM  "extended", "fast", or "timed" scan mode.
+10230 REM
+10240 REM  The routine also calculates the DUV and appends to
+10250 REM  the duvdddyy.### file.
+10300 REM
+10310 REM  Global Variables Referenced:
+10320 REM    IO MU PC SP TIMER T1 ULAST VA ZA ZERO
+10330 REM    A1$() C$ CR$ DD$ DQ$ JD$ MC$ M8$ NO$ O1$ TE$
+10340 REM    TIME$ TR$ UF$ UTIME$ UVR$ YF$
+10350 REM    DN% DV% HF% MX% MZ% Q8% TE% UC% ZU%
+10360 REM
+10370 REM  Exits: 11020, 11120, 11220, 20020
+10380 REM
+10390 REM  Uses: 50,  2090,2450,3100,3900,4450,6610,6635,
+10400 REM        6650,6700,7000,7750,9190,9450,9500,9650,
+10410 REM        9800,9810,9870,response file
+10500 REM ************************************************************
+10510 REM  History: dd/mm/yy
+10514 REM  20/05/04 - Time saving changes by eliminating some back and forth movements. The changes are skipped if new elctr.
+10515 REM  23/01/03 - code for X commanda and B-file messages added
+10520 REM  16/11/99 - UF/UA/MKIII bugs fixed; removed micrometer check
+10530 REM  14/09/98 - New zenith constant
+10540 REM  21/04/98 - GMT change; fixed new MKIII Brewer operation
+10550 REM  28/09/95 - Supports all Brewer and response file types + speedup
+10560 REM  11/04/95 - Fixed all DUV calculations; improved UA scans
+10570 REM  31/03/95 - Added missing UVA correction to MKIII Brewer
+10580 REM  12/01/95 - Uses UVR$ for response file name
+10590 REM  08/11/94 - Combined UA, UV and UX into one routine; writes
+10600 REM  all data to single UVdddyy.nnn file
+10610 REM ************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA uv
+11020 IF Q8%=0 OR DN%<>8 THEN RETURN
+11030 IF LEN(MDD2$)<>2 THEN MDD2$="uv"
+11040 C$=MDD2$:IF C$="ux" THEN MDD2$="extended "
+11050 IF C$="ua" THEN MDD2$="timed "
+11060 IF C$="uv" THEN MDD2$="standard "
+11070 IF C$="uf" THEN MDD2$="fast "
+11080 IF TYP$="mkii" OR (TYP$="mkiv" AND ZERO=3469) THEN XR=0 ELSE XR=1
+11100 IF MDD$="o3" THEN 11200
+11110   B$="UV scans cannot be used in NO2 mode":PRINT#4,B$:PRINT B$
+11120   X=2:GOSUB 7220:RETURN
+11200 IF C$="ua" OR C$="uf" OR C$="uv" OR XR=1 THEN 11500
+11210   B$="Extended range scans cannot be used on this Brewer":PRINT#4,B$:PRINT B$
+11220   X=2:GOSUB 7220:RETURN
+11500  ' *** Skip ua if you have to wait more than 7 minutes ***
+11525   GOSUB 9450:TINC=3.0:STIM=VAL(LEFT$(TIME$,2))+.5:IF VAL(MID$(TIME$,4,2))>29 THEN STIM=STIM+.5
+11560   PRINT CL$:LOCATE 5,1:PRINT "UV ";MDD2$;"scan will begin at ";STIM;" hours G.M.T."
+11580   X=VAL(LEFT$(TIME$,2))+VAL(MID$(TIME$,4,2))/60:IF X<1 THEN X=X+24:
+11590   IF STIM-X > (7/60) AND C$="ua" THEN PRINT#4, "UV "+MDD2$+" skiped ",X," ",STIM:Return:
+11600 REM
+12000 REM
+12001 ' *** Obtain Responsivity Data ***
+12002 '
+12010 DV%=1:ON ERROR GOTO 13000
+12020 UR(1)=1:ERASE UR:DIM UR(170):I=2
+12030 OPEN DD$+NO$+"\"+UVR$+"."+NO$ FOR INPUT AS 8
+12040 INPUT#8,SWV,UR(1)
+12050 INPUT#8,WV,UR(I):I=I+1:IF NOT(EOF(8)) THEN 12050
+12060 IF I<150 AND C$="ux" THEN DV%=0
+12070 ON ERROR GOTO 13500
+12080 CLOSE 8:S1=0:S2=0:S3=0:S4=0
+12090 GOTO 16000
+13000 '
+13001 ' *** Error handler on file open ***
+13002 '
+13010 PRINT#4,"No Response File Available":RESUME 13020
+13020 ON ERROR GOTO 13500:DV%=0
+13030 GOTO 12080
+13500 IF ERR<24 OR ERR>27 THEN ERASE UR
+13510 GOTO 3100
+16000 '
+16001 ' *** Set Up Data Header ***
+16002 '
+16010 UC%=0:CX$="4":TR$="s"+"a"
+16020 GOSUB 2450:GOSUB 4450
+16030 CLOSE 8:OPEN DD$+"dum.dta" FOR OUTPUT AS 8
+16040 PRINT#8,C$;CR$;"Integration time is 0.2294 seconds per sample";CR$;"dt ";T1;CR$;
+16050 IF C$="uv" OR C$="uf" THEN PRINT#8,"cy ";CX$;CR$;A1$(0);:GOTO 16070
+16060   PRINT#8,"cy 1";CR$;A1$(0);
+16070 GOSUB 6610:GOSUB 6635:M5$=UF$:GOSUB 6650:GOSUB 6700
+16080 LOCATE ,SP:PRINT "4 - Brewer azimuth to sun"
+16090 GOSUB 7750
+16100 LOCATE ,SP:PRINT "5 - Director prism to UVB sensor"
+16110 M1$=STR$(ZU%):GOSUB 9870:GOSUB 9650
+17000 '
+17001 ' *** Begin Scanning Procedure ***
+17002 DSTEP=0:'
+17005 IF Q14%=0 THEN O1$ = "L,19414,120":GOSUB 9450   'speed up the motors
+17007 if q14%=0 and typ$<>"mkiii" then SQ=1:WV=2864.9:GOSUB 8500: DSTEP = M1: ZERO=ZERO-DSTEP: ' Adjust ZERO
+17010 if Q14%=1 then M8$="-"+MC$:GOSUB 9805:M8$=STR$(-ZERO):GOSUB 9805: goto 17020
+17011 M1=-ZERO: M2=M1: GOSUB 40000: GOSUB 9450:M1=-VAL(MC$): M2=M1: GOSUB 40000: GOSUB 9450: ' back up to zero
+17020 IF C$<>"ua" THEN 17100
+17030   SQ=1:WV=2865
+17040   GOSUB 8500:O1$="M,10,"+STR$(M1):IF TYP$="mkiii" THEN O1$=O1$+SE$+"M,"+N9$+","+STR$(M2)
+17041   if q14%=0 and typ$<>"mkiii" then GOSUB 8500:M1=M1-DSTEP:O1$="M,10,"+STR$(M1)
+17055   GOSUB 9450:TINC=3.0:STIM=VAL(LEFT$(TIME$,2))+.5:IF VAL(MID$(TIME$,4,2))>29 THEN STIM=STIM+.5
+17060   PRINT CL$:LOCATE 5,1:PRINT "UV ";MDD2$;"scan will begin at ";STIM;" hours G.M.T."
+17065   DRKOK=0
+17070 GOSUB 50:GOSUB 9891:GOSUB 2090:IF HF%=1 THEN 18000
+17080   X=VAL(LEFT$(TIME$,2))+VAL(MID$(TIME$,4,2))/60:IF X<1 THEN X=X+24:
+17082   IF STIM-X > (10/60) THEN STIM=X+(1/120): PRINT#4, "UV "+MDD2$+" skiped ",X," ",STIM 'dont wait more than 10 minutes
+17083   LOCATE 6,1:PRINT "UV ";MDD2$;"scan will begin in ";(STIM-X)*60;" minutes." 
+17084   IF X<(STIM-1/60) THEN 17070 ' Wait for dark current measurement time
+17085   IF DRKOK=-1 THEN 17090
+17086 GOSUB 33000:DRKOK = -1  'dark current 1 min before ua scan
+17090   IF X<STIM THEN 17070
+17100 B$="UV "+MDD2$+"scan started at "+TIME$:CLS:PRINT CL$:LOCATE 4,2
+17110 PRINT#4,B$:PRINT B$:B$="UV "+MDD2$+" scan started":gosub 3050:GOSUB 50
+17115 IF C$<>"ua" THEN GOSUB 33000
+17200 TTIM=TIMER:TS=0:SQ=1:SW=2900:EW=3250:DW=5     'scan on slit 1
+17210 IF (C$="ua") OR C$="ux" THEN SW=2865:IF TYP$="mkiii" THEN EW=3500
+17220 GOSUB 30000:IF HF%=1 THEN 18000           'forward
+17230 IF C$="uv" THEN GOSUB 31000:IF HF%=1 THEN 18000   'dark + reverse
+17240 IF C$="uf" OR C$="uv" OR XR=0 THEN 18000
+17300 SQ=5:SW=3255:EW=3630:DW=5             'scan on slit 5
+17310 IF TYP$="mkiii" THEN SW=3505:GOTO 17360
+17320 IF Q14%=0 THEN O1$="L,19414,255":GOSUB 9450
+17330 M5$=STR$(VAL(UF$)+128):GOSUB 9800  'switch FW#2
+17340 IF Q9%=1 THEN O1$="M,6,50":GOSUB 9450  'switch FW#3
+17350 IF Q14%=0 THEN O1$="L,19414,120":GOSUB 9450
+17360 TTIM=TTIM+16-TINC:GOSUB 30000:IF HF%=1 THEN 18000 'forward
+18000 '
+18001 ' *** End Scanning Procedure ***
+18002 '
+18010 PRINT#8,"end":CLOSE 8
+18015 IF HF%=1 THEN PRINT "Aborted":PRINT#4,"UV ";MDD2$;"scan aborted at ";TIME$:B$="UV "+MDD2$+" scan aborted":gosub 3050:
+18020 if q14%=1 then M8$=STR$(ZERO+1):GOSUB 9805:M8$="-1":GOSUB 9805:M8$=MC$:GOSUB 9805:GOSUB 9500:goto 18025
+18021 M1=ZERO+1: M2=M1: GOSUB 40000: GOSUB 9450
+18022 M1=-1: M2=M1: GOSUB 40000: GOSUB 9450
+18023 M1=VAL(MC$): M2=M1: GOSUB 40000: GOSUB 9450
+18025 IF Q14%=0 THEN O1$ = "L,19414,255":GOSUB 9450
+18030 IF TYP$="mkiv" THEN M5$=UF$:GOSUB 9800            'reset FW#2
+18040 IF TYP$="mkiv" AND Q9%=1 THEN O1$="M,6,"+STR$(MX%):GOSUB 9450   'reset FW#3
+18100 IF HF%=0 THEN 19000
+18120   X=1:GOSUB 7220:GOTO 20000
+19000 '
+19001 ' *** Record all data ***
+19002 '
+19010 IF DV%=0 THEN 19200
+19020   A1$(IO)=C$+CR$+TIME$+CR$+TE$+CR$+STR$(ZA)+CR$+STR$(MU)+CR$
+19030   NL=S2/S1                'noise level
+19040   DV=S3-S4*NL:IF C$="uv" THEN DV=DV/2 'average up/down if available
+19050   PRINT#4,"            Incident DUV: ";DV;" mW/m^2"
+19060   ULAST=DV:UTIME$=TIME$:GOSUB 3900    'update last DUV on screen
+19070   OPEN DD$+"duv"+JD$+YF$+"."+NO$ FOR APPEND AS 3
+19080   PRINT#3,USING "##.####    ###.######";TS/60;DV
+19090   CLOSE 3
+19200 'Copy the file
+19210 PRINT#4,"UV ";MDD2$;"scan finished at ";TIME$:B$="UV "+MDD2$+" scan finished, incident DUV = "+str$(dv)+" mW/m^2":gosub 3050:
+19220 B$=JD$+YF$+"."+NO$: SHELL "copy "+DD$+"uv"+B$+"+"+DD$+"dum.dta "+DD$+"uv"+B$
+19230 PRINT#4,"UV ";B$;" data file extended at ";TIME$:
+20000 '
+20001 ' *** Clean Up and Exit ***
+20002 '
+20010 UR(1)=1:ERASE UR:ON ERROR GOTO 3100
+20020 if q14%=0 and typ$<>"mkiii" then ZERO=ZERO+DSTEP: GOSUB 3225:RETURN
+20025 GOSUB 3225:RETURN
+30000 '
+30001 ' *** Forward Scan and Dark Count ***
+30002 '
+30010 LOCATE 6,1:PRINT " UV ";MDD2$;"scan - Forward direction - Slit";SQ
+30020 LOCATE 8,1:PRINT " Dark Count =",DARK
+30030 LOCATE 10,1:PRINT "  TIME    WV    STEP    INTENSITY"
+30040 DQ$=STR$(SQ+1):K=-1
+30050 GOSUB 2090
+30070 FOR WV=SW TO EW STEP DW
+30080   GOSUB 32000:IF HF%=1 THEN WV=EW
+30090 NEXT:RETURN
+31000 '
+31001 ' *** Reverse Scan and Dark Count ***
+31002 '
+31010 LOCATE 6,1:PRINT " UV ";MDD2$;"scan - Reverse direction - Slit";SQ
+31020 GOSUB 33000:LOCATE 10,1:PRINT "  TIME    WV    STEP    INTENSITY"
+31030 DQ$=STR$(SQ+1):K=-1
+31040 FOR WV=EW TO SW STEP -DW
+31050   GOSUB 32000:IF HF%=1 THEN WV=SW
+31060 NEXT:RETURN
+32000 '
+32001 ' *** Single Scan ***
+32002 '
+32010 IF WV<3000 OR C$="uf" OR C$="uv" OR C$="ua" THEN CX$="4" ELSE CX$="2"
+32020 GOSUB 8500:GOSUB 2090:IF HF%=1 OR M1=0 OR (M2=0 AND TYP$="mkiii") THEN 32500
+32021 if q14%=0 and typ$<>"mkiii" then GOSUB 8500:M1=M1-DSTEP:GOSUB 2090:IF HF%=1 OR M1=0 THEN 32500
+32030 gosub 40000
+32040 O1$=O1$+":R,"+DQ$+","+DQ$+","+CX$+":O"
+32050 VA=0:GOSUB 9450:TI=TIMER*60:TM=TI:TM=INT((TM+TI)/72)/100
+32060 IF TS=0 AND WV=3250 THEN TS=TM                    'start time
+32070 X=VAL(CX$):IF C$="uf" OR C$="uv" THEN X=1
+32080 VA=INT(VA*100/X)/100                  'normalize output
+32090 PRINT#8,TM;CR$;WV;CR$;STR$(M1+DSTEP);CR$;VA        'record to file
+32100 K=K+1:IF K>=12 THEN K=0
+32110 LOCATE 12+K,1:PRINT USING "####.##  ####  #####   #######.##";TM;WV;M1+DSTEP;VA
+32120 LOCATE 13+K,1:PRINT "                                 ";
+32130 CY=VAL(CX$)/X:F(1)=DARK:GOSUB 8350            'convert VA to counts/sec
+32140 IF WV<=2920 THEN S1=S1+1:S2=S2+VA             'noise level
+32150 DV=1:IF WV>2980 THEN DV=10^(9.399999E-02*(2980-WV)/10)    'Diffey
+32160 REM
+32162 IF WV=3240 AND (C$="uf" OR C$="uv" OR (C$="ua" AND XR=0)) THEN DV=0.148     'Add on UV-A
+32164 IF WV>3290 THEN DV=10^(1.5E-02*(1390-WV)/10)      'CIE (UX/UA only)
+32166 IF WV=3565 THEN DV=0.027                  'estimated CIE to 4000
+32170 X=(WV-SWV)/ABS(DW)+1:IF X>170 OR X<0 THEN X=-1 ELSE IF UR(X)=0 THEN X=-1
+32180 IF DV%=1 AND X>=0 THEN S0=DV*ABS(DW/10)/UR(X):S3=S3+S0*VA:S4=S4+S0
+32500 GOSUB 2090:IF TIMER<TTIM+TINC AND TIMER>TTIM-20 AND HF%=0 AND C$="ua" THEN 32500
+32510 TTIM=TTIM+TINC:RETURN
+33000 '
+33001 ' *** Get Dark Count ***
+33002 '
+33010 O1$="R,1,1,20:O":GOSUB 9450:GOSUB 9190:DARK=VA/20:IF C$="uv" OR C$="uf" THEN DARK=DARK*VAL(CX$)
+33020 LOCATE 8,1:PRINT " Dark Count =",DARK
+33030 PRINT#8,"dark";CR$;DARK:RETURN
+40000 '
+40001 ' *** Prepare O1$ from M1 and M2 ***
+40002 '
+40010 IF TYP$="mkiii" and Q14%=1 THEN O1$="M,10,"+STR$(M1)+SE$+"M,"+N9$+","+STR$(M2):return
+40030 IF TYP$="mkiii" THEN O1$="X,"+STR$(M1)+","+STR$(M2) ELSE O1$="M,10,"+STR$(M1)
+40050 return
+65529 REM proper last line

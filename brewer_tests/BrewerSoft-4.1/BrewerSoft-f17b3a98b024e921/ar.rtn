@@ -1,0 +1,37 @@
+10000 REM ************ ar.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM           MKII/MKIII/MKIV Azimuth Drive Resonance Test
+10020 REM
+10030 REM                (SCI-TEC Instruments, Sept 1999)
+10040 REM
+10050 REM *************************************************************
+10070 REM
+10080 REM  this test checks that the azimuth tracker does not
+10085 REM   slip dramatically with a series of short ccw motions
+10090 REM
+10500 REM *************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  12/07/99 - Investigative form in response to Suriname bug.  
+10520 REM  27/09/99 - Initial release of production support version.  
+10560 REM *************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA ar
+11015 FULL=13000
+11020 HF%=0
+11023 IS=18 'azimuth movement size 
+11035 IW=1  'intermovement wait (seconds)
+11050 PRINT#4, "AR: Motion Size = "; IS;" counter clockwise;  Wait= ";IW
+11060 ' Calculate the number of short motions involved
+11064 ICT%=FULL/IS
+12000 '
+12001 ' *** Routine main code ***
+12002 '
+12020 FOR I3=FULL TO FULL-IS*ICT% STEP -IS
+12030       LOCATE 13,SP:PRINT "Moving azimuth to ";I3
+12040       O1$="M,2,"+STR$(I3):GOSUB 9450:AZ%=I3
+12045       X=IW:GOSUB 7220:GOSUB 2090:IF HF%<>0 THEN LOCATE 14,SP:PRINT "Aborted by user":RETURN
+12050 NEXT I3
+12300 RETURN
+65529 REM proper last line

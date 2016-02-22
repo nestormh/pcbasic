@@ -1,0 +1,151 @@
+10000 REM ************ db.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM       MKII/MKIII/MKIV O3/SO2/NO2 DS Summary for the Day
+10020 REM
+10030 REM              (SCI-TEC Instruments, July 1995)
+10040 REM
+10060 REM *************************************************************
+10070 REM
+10080 REM  This routine outputs a summary list of direct sun
+10090 REM  observations for the current day.
+10100 REM
+10220 REM  Global Variables Referenced:
+10230 REM    NTC() NTQ() TQ()
+10240 REM    A1 B2 NA1 NB2
+10250 REM    CL$ DC$ DD$ JD$ L1$ L2$ LO$ MDD$ NO$ TYP$ YE$
+10260 REM
+10270 REM  Exits: 11050, 15030, 31020
+10280 REM
+10290 REM  Uses:  3100, 5400, 7220, 8000, 8025, 8050, 8075, 8100,
+10300 REM         8150
+10310 REM
+10500 REM **************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  17/07/95 - Check for negative ozone added
+10530 REM  06/01/95 - Now uses B file for data, missing TC->no temp.corr
+10540 REM  08/12/94 - Rewritten by TM
+10550 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA dssum
+11020 I=1:GOSUB 5400:REM temp coeffs
+11030 TOBS=0:OOBS=0:NOBS=0:REM  total/ozone/NO2 observations
+12000 '
+12001 ' *** Open Brewer Data File and Print Header for Summary ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"B"+JD$+YE$+"."+NO$ FOR INPUT AS 8
+12030 ON ERROR GOTO 31000
+12040 IF EOF(8) THEN 12200
+12050   INPUT#8,A$:IF A$="ds" OR A$="n2ds" THEN 12500
+12060   GOTO 12040
+12200 PRINT "No direct sun data available for this day.":X=1:GOSUB 7220
+12210 ON ERROR GOTO 3100:CLOSE 8:RETURN
+12500 CLOSE 8:OPEN DD$+"B"+JD$+YE$+"."+NO$ FOR INPUT AS 8
+12510 PRINT#4,CHR$(12):PRINT CL$:PRINT "Position paper to top of page":GOSUB 9650
+12520 PRINT#4,"Summary of Brewer direct sun measurements for ";DC$;" (";JD$;")"
+12530 PRINT#4,:PRINT#4,"Measurements made at ";LO$;" with instrument # ";NO$
+12540 PRINT#4,USING "     Latitude            = \        \     Longitude           = \        \";L1$;L2$
+12550 PRINT#4,USING "     ETC Values (O3/SO2) = #####/#####    Absorption (O3/SO2) = ##.###/##.###";B1;B2;A1;A3
+12560 IF TYP$="mkiv" THEN PRINT#4,USING "     ETC Value  (NO2)    = #####          Absorption (NO2)    = ##.###";NB1;NA1
+12570 PRINT#4,
+12580 IF TYP$<>"mkiv" THEN PRINT#4,"Type Time(GMT)  Temp  Airmass  Ozone Error   SO2  Error"
+12590 IF TYP$= "mkiv" THEN PRINT#4,"Type Time(GMT)  Temp  Airmass  Ozone Error   SO2  Error  F-value   NO2  Error"
+12600 PRINT#4,
+13000 '
+13001 ' *** Process Direct Sun Summary Data ***
+13002 '
+13010 GOSUB 8000:GOSUB 8025:MS(0)=7:MZ(0)=4:T%=0
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$:IF A$="inst" THEN GOSUB 25000
+13120   IF A$<>"summary" AND A$<>"n2summary" THEN 13100
+13130   INPUT#8,H$,A$,A$,A$,ZA,MU,TQ,TY$,FL$
+13140   IF TQ=-30 OR (TY$<>"ds" AND TY$<>"n2ds") THEN 13100
+13150   TOBS=TOBS+1
+13160   INPUT#8,A$,A$,A$,A$,R5,R6,SO,OZ
+13170   INPUT#8,A$,A$,A$,A$,A$,A$,ES,EO
+13180   PRINT#4,RIGHT$(TY$,2);RIGHT$("  "+FL$,2);RIGHT$("  "+H$,10);
+13190   IF TY$="n2ds" THEN 13300
+13200     OZ=(R6-B1+T%*TQ*(TQ(1)-TC(1)))/MU/A1
+13210     SO=((R5-B2+T%*TQ*(TQ(0)-TC(0)))/MU/A3-OZ)/A2
+13220     OZ=OZ/10:SO=SO/10
+13230     PRINT#4,USING "  ###   ###.### ####.# +##.# ####.# +##.#";TQ;MU;OZ;EO;SO;ES
+13240     GOSUB 20000:GOTO 13100
+13300     FV=R6+T%*TQ*(NTQ(1)-NTC(1))
+13310     NO=(FV-NB1)/MU/NA1/10
+13320     PRINT#4,USING "  ###   ###.###                            #####.# ####.# +##.#";TQ;MU;FV;NO;EO
+13330     GOSUB 21000:GOTO 13100
+14000 '
+14001 ' *** Close Brewer File and Print Out Summary Data ***
+14002 '
+14010 PRINT#4,:CLOSE 8:GOSUB 22000
+14020 IF S(0)>0 OR Z(0)>0 THEN PRINT#4,USING "     ###  observations.";TOBS:GOTO 15000
+14100 PRINT#4,
+14110 PRINT#4,"***      Insufficient data to calculate      ***"
+14120 PRINT#4,"***  statistics for this day's observations. ***"
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 ON ERROR GOTO 3100
+15020 RETURN
+20000 '
+20001 ' *** Include Ozone Observation in Calculations ***
+20002 '
+20010 OOBS=OOBS+1:IF OZ<0 OR MU>3.2 OR EO>2.5 THEN RETURN
+20100 REM
+20101 REM Calculate sums
+20102 REM
+20110 MS(1)=OZ:MS(2)=SO:MS(3)=1/MU
+20120 MS(4)=R5/MU:MS(5)=R5/MU/MU:MS(6)=R6/MU:MS(7)=R6/MU/MU
+20130 GOSUB 8050:RETURN
+21000 '
+21001 ' *** Include NO2 Observation in Calculations ***
+21002 '
+21010 NOBS=NOBS+1:IF OZ<0 OR MU>5 OR EO>0.3 THEN RETURN
+21100 REM
+21101 REM Calculate sums
+21102 REM
+21110 MZ(1)=NO:MZ(2)=1/MU
+21120 MZ(3)=FV/MU:MZ(4)=FV/MU/MU
+21130 GOSUB 8075:RETURN
+22000 '
+22001 ' *** Print Daily Mean Values ***
+22002 '
+22010 S(10)=S(0)*S(18)-S(3)*S(3):IF S(10)>0 THEN S(10)=(S(0)*S(7)-S(3)*S(6))/S(10)  'ETC ozone
+22020 S(11)=S(0)*S(18)-S(3)*S(3):IF S(11)>0 THEN S(11)=(S(0)*S(5)-S(3)*S(4))/S(11)  'ETC SO2
+22030 S(12)=Z(0)*Z(17)-Z(2)*Z(2):IF S(12)>0 THEN S(12)=(Z(0)*Z(4)-Z(2)*Z(3))/S(12)  'ETC NO2
+22040 GOSUB 8100:IF TYP$="mkiv" THEN GOSUB 8150
+22200 IF S(0)>0 OR Z(0)>0 THEN PRINT#4,"    Daily means:  ";
+22210 IF S(0)>0 THEN PRINT#4,USING                 "Ozone: ####.# +##.#  SO2:   ####.# +##.#  ";S(1);S(16);S(2);S(17);
+22220 IF Z(0)>0 AND TYP$="mkiv" THEN PRINT#4,USING "NO2:   ####.# +##.#";Z(1);Z(16)
+22230 IF S(0)>0 AND Z(0)=0 THEN PRINT#4,
+22240 IF S(0)>0 OR Z(0)>0 THEN PRINT#4,"    Observations: ";
+22250 IF S(0)>0 THEN PRINT#4,USING                 "Ozone:   ### of ###                       ";S(0);OOBS;
+22260 IF Z(0)>0 AND TYP$="mkiv" THEN PRINT#4,USING "NO2:     ### of ###";Z(0);NOBS
+22270 IF S(0)>0 AND Z(0)=0 THEN PRINT#4,
+22280 IF S(0)>0 OR Z(0)>0 THEN PRINT#4,"    ETC values:   ";
+22290 IF S(0)>0 THEN PRINT#4,USING                 "Ozone:     ######.#  SO2:       ######.#  ";S(10);S(11);
+22300 IF Z(0)>0 AND TYP$="mkiv" THEN PRINT#4,USING "NO2:       ######.#";S(12)
+22310 IF S(0)>0 AND Z(0)=0 THEN PRINT#4,
+22320 RETURN
+25000 '
+25001 ' *** Reads in Temperature Coefficients when Data was Recorded ***
+25002 '
+25010 FOR I=2 TO 6:INPUT#8,TQ(I):NEXT:FOR I=1 TO 19:INPUT#8,A$:NEXT
+25020 INPUT#8,TQ(7),NTQ(7):FOR I=2 TO 6:INPUT#8,NTQ(I):NEXT
+25030 TQ(0)=TQ(2)-TQ(5)-3.2*(TQ(5)-TQ(6))
+25040 TQ(1)=TQ(3)-TQ(5)-.5*(TQ(4)-TQ(5))-1.7*(TQ(5)-TQ(6))
+25050 NTQ(1)=.1*NTQ(2)-.59*NTQ(3)+.11*NTQ(4)+1.2*NTQ(5)-.82*NTQ(6)
+25060 T%=1:RETURN
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No Brewer (B) file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 GOTO 3100
+65529 REM proper last line

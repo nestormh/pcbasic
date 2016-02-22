@@ -1,0 +1,99 @@
+10000 REM ************ ga.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM           MKIII Grating Synchronization Relation (ref GS)
+10020 REM
+10030 REM             (Sci-Tec Instruments, March 1995)
+10040 REM  
+10045 REM  changed 14660 from step 1500 to 500 and start to 150-9150 and uses all slits (IOS)
+10050 REM *************************************************************
+10060 REM
+10070 REM  This routine records scans, with the standard lamp on,
+10080 REM  at different step-numbers to collect the necessary data
+10090 REM  to determine the relationship bewteen the two spectrometers.
+10100 REM  RD_GS is used to reduce the data collected in the sgdddyy.###
+10110 REM  file to give the values of GS and GI needed.
+10120 REM
+10140 REM  Side Effects:
+10150 REM
+10160 REM  Global Variables Referenced:
+10170 REM    IO MU SP TA TD TI TIMER TM T1 VA ZA
+10180 REM    A1$() CL$ CR$ DD$ DQ$ H$ JD$ MC$ MT$ M5$ M8$ NO$ 
+10190 REM    O1$ TIME$ TR$ YF$ 
+10200 REM    DN% DV% HF% LO% UC% Q8%
+10210 REM
+10220 REM  Exits: 10510, 10520, 13040, 14720, 14940
+10230 REM
+10240 REM  Uses: 2090, 2450, 3100, 4450, 6610, 6635, 6650, 6700,
+10250 REM        6900, 7000, 7800, 8600, 9190, 9450, 9500, 9650,
+10260 REM        9805
+10270 REM
+10280 REM *************************************************************
+10290 REM  History: dd/mm/yy
+10300 REM  28/02/94 - New header, comments added, line numbers
+10310 REM  cleaned up, .dat extension replaced by .nnn
+10320 REM *************************************************************
+11000 DATA sg
+11010 IF Q8%=0 OR DN%<>8 OR TYP$<>"mkiii" THEN RETURN
+11020 ON ERROR GOTO 3100
+13000 '
+13001 '*** Check Standard Lamp ***
+13002 '
+13010 IF M9$<>"2" THEN GOSUB 9820
+13020 PRINT CL$
+14000 '
+14001 ' *** Take Standard Lamp Scan ***
+14002 '
+14010 UC% = 0
+14020 CZ$="4":CX$ = "4": TR$ = "s"+"a": REM cycle count and track mode
+14030 GOSUB 2450: GOSUB 4450: OPEN DD$ + "dum.dta" FOR OUTPUT AS 8
+14040 PRINT #8, "Integration time is 0.2294 seconds per sample"; CR$;
+14050 PRINT #8, "dt "; T1; CR$;
+14060 PRINT #8, "cy "; cx$; CR$;
+14070 PRINT #8, A1$(0);
+14500 IF MDD$="n2" THEN M4$=MID$(STR$(NOFW1),2):M5$="64" ELSE M4$=MID$(STR$(OZFW1),2):M5$=MID$(STR$(POFW2),2)
+14510 GOSUB 6610: GOSUB 6660: GOSUB 6650
+14520 TD = 1500: GOSUB 7000: GOSUB 6700: GOSUB 9860
+14530 LOCATE , SP: PRINT "4 - Director prism to lamps": GOSUB 9650
+14540 T0=TA/3600:GOSUB 8600
+14550 LOCATE , SP:PRINT"Waiting until ";H$;" for lamp warmup":GOSUB 6900
+14560 IF LO%=1 THEN RETURN
+14570 GOSUB 6800: IF HF%<>0 THEN 15000
+14640 M8$ = "-" + MC$: GOSUB 9805: M8$ = STR$(-ZERO): GOSUB 9805
+14650 B$="GA scan started at "+ TIME$:GOSUB 3050: PRINT #4, B$: DW=10: SQ=1: DQ$ = STR$(SQ+1)
+14660 FOR WW = 150 TO 9150 STEP 500: GOSUB 31000: IF HF%<>0 THEN 14700
+14670 NEXT WW
+14700 M8$ = STR$(ZERO+1): GOSUB 9805: M8$ = "-1": GOSUB 9805: M8$ = MC$: GOSUB 9805: GOSUB 9500
+14710 PRINT #8, "end": CLOSE 8
+14720 IF HF%<>0 THEN B$="GA scan aborted at "+ TIME$:GOSUB 3050: PRINT #4, B$: GOTO 15000
+14900 '
+14901 ' *** Record Data on SG File ****
+14902 '
+14910 B$="GA scan finished at "+ TIME$:GOSUB 3050:PRINT #4, B$
+14920 B$=JD$+YF$+"."+NO$
+14930 FTMP$ = DD$+"GA"+B$: GOSUB 4900: SHELL "copy "+FTMP$+"+"+DD$+"dum.dta "+DD$+"dum2.dta":  SHELL "copy "+DD$+"dum2.dta "+FTMP$
+14940 PRINT #4, "GA"; B$; " data file extended at "; TIME$
+15000 '
+15001 ' *** Quit ***
+15002 '
+15010 CLOSE 8:IF RM%=0 THEN GOSUB 9840
+15020 IF G$(JJ+1)<>"lo" THEN GOSUB 9840
+15030 RETURN
+31000 '
+31001 ' *** Scan w1 to w2 step dw on slit sq ***
+31002 '
+31005 O1$="B,2":GOSUB 9450: ' needed for the new electronics to prevent the lamp shut off
+31010 O1$ = "R,1,1,40;O": GOSUB 9450: GOSUB 9190: PRINT #8, "DARK"; CR$; VA/40*VAL(CX$)
+31020 PRINT "dark="; VA/40*VAL(CX$)
+31030 W1=WW-120: W2=WW+120
+31040 SN$=STR$(WW):WL=0:WL$="0":WU=6:WU$="6"
+31050 O1$="M,10," + SN$: GOSUB 9450: FOR WV = W1 TO W2 STEP 10
+31060 GOSUB 2090: IF HF% = 0 THEN 31080
+31070 PRINT "aborted": PRINT #8, "aborted"; CR$; : WV = W2: RETURN
+31080 SN$=STR$(WV)
+31090 O1$="M," + N9$ + "," + SN$ + ";"
+31100 TI=TIMER*60: TM=TI: GOSUB 9450: TM=INT((TM+TI)/72)/100
+31110 GOSUB 9700:GOSUB 9900
+31120 PRINT #8, SN$, F(0), F(2), F(3), F(4), F(5), F(6)
+31130 PRINT SN$, f(5)
+31140 NEXT: RETURN
+65529 REM proper last line

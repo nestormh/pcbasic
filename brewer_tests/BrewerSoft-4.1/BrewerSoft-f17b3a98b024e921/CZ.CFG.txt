@@ -1,0 +1,9 @@
+ 2950 ,Minimum Wavelength
+ 2984 ,Maximum Wavelength
+ .25 ,Wavelength Increment
+ 1 ,Ground quartz diffuser (ND=2.32)
+ 1 ,Neutral Density 0.494
+ 1 ,Internal mercury lamp
+ 4 ,Slit Mask Cycles
+ 1 ,Iris Open
+

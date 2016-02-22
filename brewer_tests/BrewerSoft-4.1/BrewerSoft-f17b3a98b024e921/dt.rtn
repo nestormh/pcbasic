@@ -1,0 +1,133 @@
+10000 REM ************ dt.rtn 20/06/2014 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM                MKII/MKIII/MKIV Dead-Time Test
+10020 REM
+10030 REM               (SCI-TEC Instruments, July 1998), IOS, 2003
+10040 REM
+10050 REM  See Also:
+10060 REM ***************************************************************
+10070 REM
+10080 REM  This routine determines the optimum dead-time to be used for
+10090 REM  the photomultiplier tube (PMT) in question.
+10100 REM
+10110 REM  Side Effects:
+10120 REM
+10130 REM  Global Variables Referenced:
+10140 REM    F() HF%
+10150 REM    NOFW1 OZFW1 POFW2 SP TA TD
+10160 REM    CL$ CZ$ DA$ DD$ H$ JD$ M4$ M5$ M9$ MDD$ MP$ NO$ TIME$ WL$
+10170 REM    WU$ YE$
+10180 REM
+10190 REM  Exits: 10520, 11040
+10200 REM
+10210 REM  Uses:  2450, 3100, 6610, 6650, 6660, 6700, 6800, 6900, 7000,
+10220 REM         7050, 8000, 8050, 8100, 8600, 9650, 9670, 9710, 9820,
+10230 REM         9840, 9860, 9900
+10240 REM
+10250 REM ***************************************************************
+10260 REM  History: dd/mm/yy
+10261 REM  17/05/05 - Saving data in b-files
+10263 REM  05/11/03 - Saving averages and std in b-files
+10270 REM  17/07/98 - Better error handling; lamp turned off on abort
+10280 REM  12/04/95 - Improved deadtime aborting
+10290 REM  10/05/94 - New header, comments added, line numbers cleaned up
+10300 REM  01/04/94 - O3 and NO2 modes combined
+10310 REM ***************************************************************
+10500 DATA dt
+10510 '
+10511 ' ***     High Intensity Dead-Time Test     ***
+10512 '   (Filter 1-0 (1-4 for NO2) and Filter 1-1)
+10513 '
+10514 GOSUB 35000: DIM DT.BFILE(20)
+10520 LO%=0:GOSUB 11600:IF LO%=1 OR HF%=1 THEN GOSUB 9840:GOSUB 35000:RETURN
+10530 GOSUB 6800:PRINT#4,MDD$+" DEADTIME TEST AT ";TIME$;", ";MP$;DA$;", ";YE$
+10540 PRINT#4,"Deadtime (ns) for filter position";VAL(M5$)/64;" (high intensity)":dt.nd1=VAL(M5$)/64
+10550 GOSUB 8000:MS(0)=1:GOSUB 9670
+10560 NT%=0:WL$="1":WU$="7":CZ$="10":GOSUB 9710
+10570 GOSUB 9900:GOSUB 2090:IF HF%<>0 THEN GOSUB 9840:GOSUB 35000:RETURN
+10580 NT%=NT%+1:IF NT%>5 THEN 10630
+10590 GOSUB 9710:FOR IS=2 TO 7:F(IS)=(F(IS)-F(1))*2/CY/IT:NEXT:dt.f11=f(7)
+10591 IF F(3)>1E+07 THEN F(3)=1E+07
+10592 IF F(3)<2 THEN F(3)=2
+10593 IF F(5)>1E+07 THEN F(5)=1E+07
+10594 IF F(5)<2 THEN F(5)=2
+10595 IF F(7)>1E+07 THEN F(7)=1E+07
+10596 IF F(7)<2 THEN F(7)=2
+10600 F3=F(3):F5=F(5):FOR IS=1 TO 10:A=F3+F5:T2=LOG(A/F(7))/A
+10602 IF T2<1E-09 THEN T2=1E-09
+10603 IF T2>.0000001 THEN T2=.0000001
+10610 F3=F(3)*EXP(F3*T2):F5=F(5)*EXP(F5*T2):NEXT:MS(1)=T2*1E+09:DT.BFILE(NT%)=MS(1):GOSUB 8050: LOCATE 7+NT%, 5: PRINT USING "###.#  ##.#!"; MS(1); DT.F11/1.0E6;"M"
+10620 PRINT#4,T2;"(at ";TIME$;")";"      Counts/second: F(3)= ";F(3);"   F(5)= ";F(5);"   F(7)= ";F(7):GOTO 10570
+10630 GOSUB 8100:PRINT#4,"     Mean = ";S(1);"    Std Dev = ";S(16):PRINT#4,"     Would-be DT correction for  High intensity: ";int((exp(T2*int(dt.f11/100000.0)*1e5)-1)*1000)/10;"%  @ ";int(dt.f11/100000.0)/10;"М c/s"
+10640 HIRATIO=S(1):HISTD=S(16)
+10900 '
+10901 ' ***     Low Intensity Dead-Time Test      ***
+10902 '   (Filter 1-1 (1-4 for NO2) and Filter 2-2)
+10903 '
+10905 REM     Make NOFW2 an instrument constant! (NOFW2+64/POFW2+64)
+10910 IF MDD$="n2" THEN M5$="128" ELSE M5$=STR$(POFW2+64):    'Low Intensity FW#2 Position
+10920 GOSUB 6650:GOSUB 9650:PRINT#4,"Deadtime (ns) for filter position";VAL(M5$)/64;" (low intensity)":dt.nd2=VAL(M5$)/64
+10930 GOSUB 8000:MS(0)=1:GOSUB 9670: FOR NT%=1 to 5: : LOCATE 7+NT%, 5: PRINT USING "###.#  ##.#!"; DT.BFILE(NT%); DT.F11/1.0E6;"M": NEXT
+10940 NT%=0:WL$="1":WU$="7":CZ$="10":GOSUB 9710
+10950 GOSUB 9900:GOSUB 2090:IF HF%<>0 THEN GOSUB 9840:GOSUB 35000:RETURN
+10960 NT%=NT%+1:IF NT%>10 THEN 11010
+10970 GOSUB 9710:FOR IS=2 TO 7:F(IS)=(F(IS)-F(1))*2/CY/IT:NEXT:dt.f12=f(7)
+10971 IF F(3)>1E+07 THEN F(3)=1E+07
+10972 IF F(3)<2 THEN F(3)=2
+10973 IF F(5)>1E+07 THEN F(5)=1E+07
+10974 IF F(5)<2 THEN F(5)=2
+10975 IF F(7)>1E+07 THEN F(7)=1E+07
+10976 IF F(7)<2 THEN F(7)=2
+10980 F3=F(3):F5=F(5):FOR IS=1 TO 10:A=F3+F5:T2=LOG(A/F(7))/A
+10982 IF T2<1E-09 THEN T2=1E-09
+10983 IF T2>.0000001 THEN T2=.0000001
+10990 F3=F(3)*EXP(F3*T2):F5=F(5)*EXP(F5*T2):NEXT:MS(1)=T2*1E+09:DT.BFILE(NT%+5)=MS(1):GOSUB 8050: LOCATE 7+NT%, 20: PRINT USING "###.#  ##.#!"; MS(1); DT.F12/1.0E6;"M"
+11000 PRINT#4,T2;"(at ";TIME$;")";"      Counts/second: F(3)= ";F(3);"   F(5)= ";F(5);"   F(7)= ";F(7):GOTO 10950
+11010 GOSUB 8100:PRINT#4,"     Mean = ";S(1);"    Std Dev = ";S(16):PRINT#4,"     Would-be DT correction for Low intensity: ";int((exp(T2*int(dt.f12/100000.0)*1e5)-1)*1000)/10;"%  @ ";int(dt.f12/100000.0)/10;"М c/s"
+11020 LOWRATIO=S(1):LOWSTD=S(16)
+11030 IF INSTR("dt rs sl",G$(JJ+1))=0 THEN GOSUB 9840
+11035 GOSUB 32000                       'Save Average File
+11040 PRINT#4,"*****************************":GOSUB 35000:RETURN
+11500 '
+11501 ' *** Filter Wheel Position, Prism Rotation, Lamp Warm-Up ***
+11502 '
+11510 GOSUB 6610
+11520 IF MDD$="n2" THEN M4$=STR$(NOFW1) ELSE M4$=STR$(OZFW1)      'FW#1
+11530 GOSUB 6660	'Make NOFW2 an instrument constant! (NOFW2/POFW2)
+11540 IF MDD$="n2" THEN M5$="64" ELSE M5$=STR$(POFW2):     'High Intensity FW#2 Position
+11550 GOSUB 6650:GOSUB 9860:GOSUB 6700:TD=1500:GOSUB 7000     'Set wait time
+11560 LOCATE ,SP:PRINT "4 - Rotate director prism to lamps":GOSUB 9650
+11570 T0=TA/3600:GOSUB 8600:PRINT CL$
+11580 PRINT "Waiting until ";H$;" for lamp warmup":IF MDD$="n2" THEN RETURN
+11590 GOSUB 6900:RETURN
+11600 '
+11601 ' *** Set Up Standard Lamp ***
+11602 '
+11610 IF M9$<>"2" THEN GOSUB 9820     'Standard Lamp On
+11620 GOSUB 2450                      'Get Brewer Temperature
+11630 GOSUB 11500
+11640 RETURN
+32000 '
+32001 ' *** Save Average Files ***
+32002 '
+32010 ON ERROR GOTO 32130
+32020 VAR1$=STR$(HIRATIO) : VAR2$=STR$(LOWRATIO)
+32025 VAR3$=STR$(HISTD) : VAR4$=STR$(LOWSTD)
+32030 AVGFILE$="DTOAVG"
+32040 IF MDD$="n2" THEN AVGFILE$="DTNAVG"
+32050 CLOSE 6:OPEN DD$+AVGFILE$+"."+NO$ FOR APPEND AS #6
+32060 IF LEN(VAR1$) < 10 THEN VAR1$=SPACE$(10-LEN(VAR1$))+VAR1$
+32070 IF LEN(VAR2$) < 10 THEN VAR2$=SPACE$(10-LEN(VAR2$))+VAR2$
+32080 '
+32090 PRINT#6,JD$+YE$; " "; VAR1$; " "; VAR2$; " "; VAR3$; " "; VAR4$; " "; str$(dt.f11); " ";str$(dt.f12)
+32095 A1$(IO)=R$+"dt"+MDD$+CR$+MP$+CR$+DB$+CR$+YE$+CR$+TIME$+CR$+STR$(TE%)+CR$
+32096 A1$(IO)=A1$(IO)+str$(dt.nd1)+cr$+str$(dt.f11)+cr$:FOR NT%=1 TO 5: A1$(IO)=A1$(IO)+STR$(INT(DT.BFILE(NT%)*100+.5)/100)+CR$:NEXT
+32097 A1$(IO)=A1$(IO)+str$(dt.nd2)+cr$+str$(dt.f12)+cr$:FOR NT%=6 TO 15: A1$(IO)=A1$(IO)+STR$(INT(DT.BFILE(NT%)*100+.5)/100)+CR$:NEXT
+32098 A1$(IO)=A1$(IO)+VAR1$+CR$+VAR3$+CR$+VAR2$+CR$+VAR4$
+32099 IO=IO+1:GOSUB 3225
+32100 '
+32110 CLOSE 6
+32120 ON ERROR GOTO 3100 : RETURN
+32130 IF ERR = 53 AND ERL = 32050 THEN RESUME 32110 ELSE RESUME 32120
+35000 DT.BFILE(1)=0: ERASE DT.BFILE: PRINT FRE(0), FRE(""): RETURN
+65529 REM proper last line

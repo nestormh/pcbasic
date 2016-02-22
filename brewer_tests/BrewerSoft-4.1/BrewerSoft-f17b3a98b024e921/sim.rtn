@@ -1,0 +1,113 @@
+10000 REM ************ sim.rtn 16/01/2014 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM          MKII/MKII/MKIV Sight the Moon From the Keyboard
+10002 REM
+10003 REM
+10004 REM ***************************************************************
+10005 DATA sim
+11000 IF Q1%=0 THEN B$="Zenith drive turned OFF in op_st. Cannot do sighting. Quitting.": PRINT #4, B$: PRINT B$: GOSUB 3050: RETURN
+11005 IF Q2%=1 THEN 20000
+11006 IF NO$="017" OR SKCNAZ%=5 THEN 20000
+11010 B$="Azimuth drive turned OFF in op_st.":CLS: PRINT #4, B$: PRINT B$:PRINT "Do you still want to do sighting (y/n)?": GOSUB 3050
+11020 A$=INKEY$: IF A$=Q2$ THEN RETURN
+11030 IF A$="" OR (A$<>"y" AND A$<>"Y" AND A$<>"n" AND A$<>"N") THEN 11020
+11040 IF A$<>"y" AND A$<>"Y" THEN B$="User didn't confirm doing sighting. Quitting.": PRINT #4, B$: PRINT B$: GOSUB 3050: RETURN
+11050 B$="User confirmed doing sighting without azimuth tracker.": PRINT #4, B$: PRINT B$: GOSUB 3050
+20000 '
+20001 ' *** Sight the Moon ***
+20002 '
+20005 UC%=0:N1%=NC%:H1%=HC%:NN%=5:VA=63:A$=""
+20006 TR$="f"+"m":GOSUB 5100
+20010 PRINT CL$
+20015 LOCATE 4,SP:PRINT"Keyboard sighting"
+20017 LOCATE ,SP:PRINT "Press :-"
+20020 LOCATE ,SP:PRINT "Crsr up to raise zenith"
+20030 LOCATE ,SP:PRINT "Crsr down to lower zenith"
+20040 LOCATE ,SP:PRINT "Crsr right for azimuth clockwise"
+20050 LOCATE ,SP:PRINT "Crsr left for azimuth counterclockwise"
+20055 LOCATE ,SP:PRINT "Press CTRL-END when finished"
+20056 LOCATE ,SP:PRINT "Press K for keyboard"
+20057 LOCATE ,SP:PRINT "Press R for remote":GOSUB 20193
+20060 GOTO 20130:REM remote entry default start
+20065 LOCATE 15,40:PRINT "KEYBOARD"
+20070 IF A$="" THEN 20112
+20071 IF A$=QB$ THEN 20200
+20075 IF A$="1" THEN NN%=1:GOSUB 20193
+20076 IF A$="5" THEN NN%=5:GOSUB 20193
+20077 IF A$="9" THEN NN%=9:GOSUB 20193
+20078 IF A$="r" THEN 20130
+20080 IF A$=Q7$ THEN HC%=HC%+1
+20085 IF A$=Q8$ THEN HC%=HC%-1
+20090 IF A$=Q6$ THEN NC%=NC%+NN%
+20100 IF A$=Q4$ THEN NC%=NC%-NN%
+20101 IF A$=Q2$ THEN HF%=1:GOSUB 9500
+20102 IF A$="z" THEN M5$="0":GOSUB 9800
+20103 IF A$="x" THEN M5$="64":GOSUB 9800
+20104 IF A$="c" THEN M5$="128":GOSUB 9800
+20105 IF A$="v" THEN M5$="192":GOSUB 9800
+20111 A$=INKEY$:GOTO 20070
+20112 GOSUB 20500
+20115 GOTO 20070
+20130 LOCATE 15,40:PRINT"REMOTE  "
+20135 IF A$="k" THEN 20065
+20140 IF A$=QB$ THEN 20200
+20141 IF A$=Q2$ THEN HF%=1:GOSUB 9500
+20142 IF A$="1" THEN NN%=1:GOSUB 20193
+20143 IF A$="5" THEN NN%=5:GOSUB 20193
+20144 IF A$="9" THEN NN%=9:GOSUB 20193
+20145 IF Q14%=0 AND (VA AND 1)=0 THEN NC%=NC%+NN%
+20146 IF A$="z" THEN M5$="0":GOSUB 9800
+20147 IF A$="x" THEN M5$="64":GOSUB 9800
+20148 IF A$="c" THEN M5$="128":GOSUB 9800
+20149 IF A$="v" THEN M5$="192":GOSUB 9800
+20150 IF Q14%=0 AND (VA AND 2)=0 THEN NC%=NC%-NN%
+20160 IF Q14%=0 AND (VA AND 64)=64 THEN HC%=HC%+1
+20170 IF Q14%=0 AND (VA AND 128)=128 THEN HC%=HC%-1
+20171 IF Q14%=1 AND (VA AND 1)=1 THEN NC%=NC%+NN%
+20172 IF Q14%=1 AND (VA AND 17)=17 THEN NC%=NC%+NN%*10
+20173 IF Q14%=1 AND (VA AND 2)=2 THEN NC%=NC%-NN%
+20174 IF Q14%=1 AND (VA AND 18)=18 THEN NC%=NC%-NN%*10
+20175 IF Q14%=1 AND (VA AND 4)=4 THEN HC%=HC%+1
+20176 IF Q14%=1 AND (VA AND 20)=20 THEN HC%=HC%+10
+20177 IF Q14%=1 AND (VA AND 8)=8 THEN HC%=HC%-1
+20178 IF Q14%=1 AND (VA AND 24)=24 THEN HC%=HC%-10
+20180 GOSUB 20500
+20190 GOTO 20135
+20192 : 
+20193 LOCATE 16,40:PRINT "Step=";NN%:RETURN
+20199 : 
+20200 '
+20201 ' *** Save New Values and Return ***
+20202 '
+20205 IF ABS(H1%-HC%)>5 OR ABS(N1%-NC%)>20 THEN COLOR 12: LOCATE 20,SP:PRINT "The adjustments are unusually large. Do not save unless absolutely certain.": COLOR 7
+20240 LOCATE 20,SP:PRINT "Do you want new values saved? (Y/N) ";:GOSUB 2035
+20250 IF (A$="y") OR (A$="Y") THEN GOSUB 20400:GOTO 5200
+20255 IF (A$<>"n") and (A$<>"N") THEN 20240
+20260 NC%=N1%:HC%=H1%:RETURN 
+20299 : 
+20300 LOCATE 15,SP:PRINT "Horizon correction:"
+20310 LOCATE ,SP:PRINT "     Old =";H1%;";New =";HC%;"     "
+20320 LOCATE ,SP:PRINT "North correction:"
+20330 LOCATE ,SP:PRINT "     Old =";N1%;";New =";NC%;"     ";CR$
+20335 LOCATE ,SP:PRINT "     Neutral density attenuation: ";VAL(M5$)/64;" Press z for 0, x for 1, c for 2 or v for 3"
+20340 RETURN
+20400 '
+20401 ' *** Write Record to Printer and B-file ***
+20402 '
+20410 GOSUB 8600:PRINT#4,"***";MP$;DB$;YE$;"    ";H$
+20420 PRINT#4,"Horizon Correction   Old = ";H1%;"    New = ";HC%
+20425 PRINT#4,"North Correction     Old = ";N1%;"    New = ";NC%
+20430 PRINT#4,"***"
+20440 B$="New SIM, HC = "+STR$(HC%)+", NC = "+STR$(NC%)+"  Old = "+STR$(H1%)+" , "+STR$(N1%):GOSUB 3050
+20450 RETURN
+20500 '
+20501 ' *** Write to Brewer and Read Push Buttons ***
+20502 '
+20505 IF IS%=42 THEN GOSUB 9550:GOTO 20505
+20510 FLAG=2:GOSUB 7800
+20515 O1$=":G,800":IF Q14%=1 THEN O1$=":?TRACKER.SWITCHES"
+20520 O1$="M,1,"+MID$(STR$(ZEC%),2)+O1$:ZE%=ZEC%
+20530 IF Q2%=1 THEN O1$="M,2,"+MID$(STR$(AZC%),2)+":"+O1$:AZ%=AZC%
+20540 GOSUB 9400:IF HF%=1 AND A$="" THEN A$=INKEY$
+20550 GOSUB 20300:RETURN
+65529 REM proper last line

@@ -1,0 +1,42 @@
+International Ozone Services Inc. is introducing new full release of the Brewer operating software version 3.78.
+There are important changes and improvements to the way the program behaves and to what information 
+is saved in the b-files.
+
+The following changes have been made:
+	1. We have decided to save some memory by removing comments from the code in the main program. 
+	   This is now done by using line number 55555 for all comments. Since GWBasic interpreter overwrites lines with the same line number,
+	   only the last such line is left when the code is loaded, thus saving the memory.
+	   We suggest using line number 55555 for all comments and NEVER use this line number for code since it will be lost.
+	2. The the automatic HG/HP/FR can now be switched ON or OFF in the main program using one of the following methods:
+		a) calling auto-off (or auto-on) command from the main menu
+		b) changing the value of AUTOHG variable to 1 (ON) or 0 (OFF) 
+		b) editing line 4 of the main program to change the initial value of AUTOHG variable
+	3.	the program now has a new string variable, VER$, that holds the program version value. It is initialized on line 5
+	4. 2 new commands are introduced, 'saveall' and 'savedh', saveall saves all constants into the bfile and savedh saves the day header plus all constants
+	5. automatic neutral density filter selection is now done based on the maximum intensity between all slits, not just slit 4
+	6. Another option that has been introduced in this release is the way the automatic neutral density filter selection behaves.  
+		There are two new variables in the program, UATTN! and LATTN!, which control when the oscillation mode (when the program 
+		uses two neutral density filters alternatively) start.  LATTN! sets the lower limit on the higher attenuation filter and 
+		UATTN! sets the limit on the lower attenuation filter.
+
+        For example:  the original values for the automatic ND filter selection were 25000 and 80000, these being the number of counts 
+        accumulated in one observing cycle.  Converting these numbers to counts per seconds (c/s) gives 426000 c/s and 1363000 c/s, so 
+        the oscillation mode happened when the higher attenuation filter gave a rate less than 426000 c/s and the lower attenuation 
+        filter gave the rate greater than 1363000 c/s.  Because the nominal ratio between two adjacent ND filters is approximately 3.1 
+        and the ratio of 1363000/426000 is 3.19, the oscillation mode usually took place over a very short time interval.  
+        During the El Arenosillo, Spain, Brewer intercomparison campaign in July, 2011 it was discovered that a combination of 
+        small slant amount of ozone (airmass * ozone column) and low count rate can produce very noisy, and thus unreliable, 
+        ozone observations.  This situation occurs when the neutral density filter that is automatically selected for DS observations 
+        for most of the mid_day measurements attenuates more than a factor of 1/3.1 compared to the one step lower attenuation filter 
+        in filter wheel 2.  In this case, the number of c/s will be very low and since the airmass values in the middle of the day are small, 
+        the slant ozone amount is small leading to a small ozone absorption signal with an imprecise observation because of the low count rate.
+
+	This situation can be improved by having a more accurate spacing of the attenuating filters, particularly for those with larger attenuations. 
+	However, if the DS observations are made with alternatively higher and lower attenuation filters there is a significant improvement in the overall 
+	statistics of accepted results.  This mode also provides information that can be used to compare the performance of the neutral density filters by 
+	collecting observation pairs on adjacent filters.  Setting LATTN! to 50000 and UATTN! to 70000 increases the duration of the oscillating interval in the 
+	DS observations.  The higher count rates provide useful ozone information only if the counting system is sufficiently fast and the characterization of the 
+	dead time and dead time function is accurate.
+
+		
+		

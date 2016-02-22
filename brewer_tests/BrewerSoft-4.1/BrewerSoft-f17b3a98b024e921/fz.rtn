@@ -1,0 +1,88 @@
+10000 REM ************ fz.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM           MKII/MKIII/MKIV Focused Sun Observations
+10020 REM
+10030 REM             (SCI-TEC Instruments, October 1995)
+10040 REM
+10060 REM *************************************************************
+10070 REM
+10080 REM  Take focused sun observations and correct for sky light by
+10090 REM  measuring the offset of the sun.  Only three readings are
+10100 REM  taken because the sky light observation (taken first) will
+10110 REM  not be representative for too many focused sun observations
+10120 REM  at low solar heights; only the first one can be used.
+10130 REM
+10220 REM  Global Variables Referenced:
+10230 REM    MS() DS% HF% UC% ND TD XN
+10240 REM    CL$ CY$ CZ$ M5$ MDD$ SQ$ TR$ TYP$ ZS$
+10250 REM
+10260 REM  Exits: 11040, 11070, 12100, 13020
+10270 REM
+10280 REM  Uses:  2450, 3200, 3220, 4200, 6610, 6630, 6636, 6650,
+10290 REM         6690, 7000, 7220, 7500, 7750, 8000, 8200, 9650,
+10300 REM         9670, 9700, 9900
+10310 REM
+10500 REM **************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  27/09/95 - Fixed angle check, sky light correction
+10530 REM  17/07/95 - Aborts if counts are too high; zenith angle check
+10540 REM  20/12/94 - Rewritten by TM
+10550 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA fz
+11020 IF MDD$="o3" THEN 11050
+11030   B$="FZ is not an NO2 routine":PRINT B$:PRINT#4,B$
+11040   X=1:GOSUB 7220:RETURN
+11050 IF ABS(ZA)>73 THEN 11100
+11060   B$="FZ requires a minimum zenith angle of 73 degrees":PRINT B$:PRINT#4,B$
+11070   X=1:GOSUB 7220:RETURN
+11100 TR$="d"+"s":UC%=0
+11120 GOSUB 3215:GOSUB 2450                 'Temperature
+11130 GOSUB 6610:GOSUB 6635                 'Filter#1 to 3
+11140 M5$="320":GOSUB 6650                  'Filter#2 to 5
+11150 GOSUB 6690:GOSUB 7750                 'Iris closed, AZ/ZE to sun
+11160 LOCATE ,SP:PRINT "4 - Point Brewer at sun"
+11170 GOSUB 9650:GOSUB 7500          ' test intensity
+12000 '
+12001 ' *** Offset Tracker by 1 Degree and Get Sky Light Counts ***
+12002 '
+12010 GOSUB 7750:AZC%=AZC%-2.0/360*SR%:GOSUB 7950       'Offset tracker
+12015 CZ$=CY$:WL$="1":WU$="6"
+12020 GOSUB 9880:WT=(WU-WL+1)*VAL(CZ$)*18/7*IT:T0=TIMER/60+WT/120
+12030 O1$="R,"+WL$+","+WU$+","+CZ$:GOSUB 9400           'Take reading
+12040 TI=TIMER*60:TS=TI/7200:TD=200+WT*60:GOSUB 7000
+12050 GOSUB 9670:GOSUB 9900                 'Get data
+12055 AF% = INT(VAL(M5$)/64+.5)
+12060 PRINT#4,"mu= ";M2; "att. "; AF%; " SKY LIGHT CNTS= ";
+12070 GOSUB 4400:IO=IO+1:FOR I=2 TO 6:SKY(I)=F(I):PRINT#4,SKY(I);:NEXT:PRINT#4,
+12080 GOSUB 7750                        'Remove offset
+12090 FS=20*FS-SKY(5)
+12100 IF M5$="0" AND FS<1000 THEN PRINT CL$:LOCATE ,SP:B$="FZ intensity too low => STOP":PRINT#4,B$:GOSUB 3050:RETURN
+13000 '
+13001 ' *** Take Set of Observations ***
+13002 '
+13010 GOSUB 9700
+13020 GOSUB 8000:MS(0)=11:DS%=0
+13030 SQ$=M5$
+13040 DS%=DS%+1:GOSUB 20000
+13050 IF HF%<>0 OR DS%=3 THEN 14000
+13060 GOTO 13040
+14000 '
+14001 ' *** Clean Up and Exit ***
+14002 '
+14010 GOSUB 4200:GOSUB 3220
+14020 RETURN
+20000 '
+20001 ' *** Focused Sun Observation ***
+20002 '
+20010 GOSUB 9670:GOSUB 9900                 'Get data when ready
+20015 IF F(6)>4000000 THEN B$=" COUNTS TOO HIGH - aborting ":PRINT#4,B$: GOSUB 3050
+20020 IF F(6)>4000000 OR HF%=1 THEN DS%=3:RETURN    'Terminate measurement
+20030 IF XN=1 OR DS%<3 THEN GOSUB 9700              'Take a reading
+20040 IF XN=1 THEN 20010:REM restart obs
+20050 GOSUB 4400:FOR I=2 TO 6:F(I)=F(I)-SKY(I):NEXT:GOSUB 8200  'Store and display data
+20060 GOSUB 3200                        'Output buffer if needed
+20070 ND=ND+1:RETURN 
+65529 REM *** dummy line ***

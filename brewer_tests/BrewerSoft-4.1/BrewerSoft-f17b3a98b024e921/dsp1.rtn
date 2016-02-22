@@ -1,0 +1,170 @@
+10000 REM ************ dsp1.rtn 04/04/2012 19:47:08 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM         MKII/MKIII/MKIV Dispersion Test Routine
+55555 REM        
+55555 REM            (SCI-TEC Instruments, March 1998)
+55555 REM        
+55555 REM   See Also: dsp.rtn
+55555 REM *******************************************************
+55555 REM
+55555 REM  This routine scans the actual reference lamp lines
+55555 REM  specified by DSP.  The scan results are written to
+55555 REM  files that LINEFIT.EXE can use.
+55555 REM
+55555 REM  Global Variables Referenced:
+55555 REM    AN() ND() WV()
+55555 REM    SP SWV TD TI TIMER ZERO
+55555 REM    CL$ DD$ H$ JD$ M8$ MC$ MDD$ NO$ O1$ TYP$ WL$ WU$ YE$
+55555 REM
+55555 REM  Exits: 10830, 13000
+55555 REM
+55555 REM  Uses:  6800, 7220, 8500, 9450, 9650, 9750, 9770, 9800,
+55555 REM         9805, 9830, 9870, 9940
+55555 REM
+55555 REM ********************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  21/04/12 - Changed the output directory name to DSP-### so that the files don't get mixed up when copied from many Brewers
+55555 REM  15/06/10 - Now supports 30 lines, opens a separate folder for the dsp test
+55555 REM  31/03/98 - Added new electronics support
+55555 REM  14/07/95 - Micrometer movement is split up again
+55555 REM  30/11/94 - Fixed method to switch slits on a MKIV,
+55555 REM  better screen formatting, shuts off HG lamp when 
+55555 REM  not in use
+55555 REM  14/09/94 - New method for handling slit ranges
+55555 REM  05/07/94 - Handles MKII/MKIII/MKIV automatically,
+55555 REM  allows up to 9 scanning wavelengths
+55555 REM  01/04/94 - NO2 mode trapped and disabled
+55555 REM  28/02/94 - Variable ZERO used, writes to DSP.nnn
+55555 REM  instead of DSP.hst with the value of ZERO appended
+55555 REM ********************************************************
+10800 '
+10801 ' *** Check Brewer Mode First ***
+10802 '
+10810 IF MDD$ = "o3" THEN 11000
+10820 B$="Running DSP1 in NO2 mode": PRINT B$:PRINT #4,B$: GOSUB 3050:GOTO 11000
+10830 X=1:GOSUB 7220:ERASE LSN,HSN,WV,AN:RETURN
+11000 '
+55555 ' *** Prepare for Scan ***
+55555 '
+11010 DATA dsp1
+11020 GOSUB 9770: GOSUB 9750
+11030 M8$ = "-" + MC$: GOSUB 9805: 
+11035 IF MDD$="n2" THEN M8$ = STR$(-ZERO+SWITCH%) ELSE M8$ = STR$(-ZERO) 
+11036 GOSUB 9805
+11040 SWV = 9999: IF TYP$="mkiv" THEN SWV = 3300
+55555  'Creating the folder
+11050 GOSUB 32790
+11060 CHDIR "\"
+12000 '
+55555 ' *** Begin Scan ***
+55555 '
+12010 FOR IL% = LN1 TO LN2
+12020   GOSUB 22000
+55555     'Turn on HG lamp if needed
+12030   IF AN(IL%)=0  AND M9$<>"1" THEN GOSUB 9830
+55555     'Turn off HG lamp if needed
+12040   IF AN(IL%)<>0 AND M9$<>"0" THEN GOSUB 9840
+55555        'Set filter #1 in position 3 for UVB dome
+12050   IF AN(IL%)=>ER%*2/3 THEN GOSUB 9785
+55555        'Set filter #1 in position 1 for quartz window
+12060   IF AN(IL%)< ER%*2/3 THEN GOSUB 9770
+55555       'Set filter #2 to M5$. Start with 0 and go up if the line is too bright
+12065   M5$ = "0"
+12070   GOSUB 9800
+55555            'Set zenith to M1$
+12080   M1$ = STR$(AN(IL%)): GOSUB 9870
+12100   CZ$ = "4": CY = 4: CLOSE 8: X = 1: IF LSN(IL%) > HSN(IL%) THEN X = -1
+12110   FOR J = LSN(IL%) TO HSN(IL%) STEP X
+55555 REM Turn on HG if last line
+12115   IF IL% = LN2 AND M9$<>"1" THEN GOSUB 9830
+12120     IF J = 0 THEN WL$ = STR$(0): ELSE WL$ = STR$(J + 1)
+12130     WU$ = WL$: WL = J + 1: WU = J + 1
+55555     REM these next lines of codes will allow for line numbers greater than then, changing the numbers to letters
+12150     FL$ = DD$+"DSP-"+RIGHT$("###" + NO$, 3)+"\" + JD$ + YE$ + "\w"  
+12151     IF IL%<10 THEN FL$ = FL$ +  RIGHT$(STR$(IL%), 1) 
+12152     IF IL%>=10 then FL$ = FL$ + CHR$(87+IL%)
+12163     FL$ = FL$ + RIGHT$(STR$(J), 1) + JD$ + YE$
+12164     FL$ = FL$ + "." + RIGHT$("###" + NO$, 3)
+12170     OPEN FL$ FOR OUTPUT AS 8: PRINT #8, WV(IL%)
+12180     SQ = J: WV = WV(IL%): GOSUB 8500: Y8 = M1
+12190     IF Y8 < 151 THEN Y8 = 151
+12192     IF INSTR("051;",NO$)<>0 AND Y8+150>6630 THEN Y8=6630-150
+12195     IF TYP$ = "mkiii" THEN IF INT(Y8 * GS + GI + .5)  < 151 THEN Y8 = INT((151-GI)/GS+1.5)
+12200     IF WV(IL%) > SWV THEN O1$="M,6,50" ELSE O1$="M,6,"+STR$(MX%): REM Set based on wavelength to scan
+12210     IF TYP$="mkiv" AND Q9%=1 THEN GOSUB 9450: REM Switch only on a MKIV!
+12220     GOSUB 22000:LOCATE 9,32:PRINT "Scanning slit";J;" (";LSN(IL%);" to ";HSN(IL%);")":LOCATE 11,9:PRINT "Step   Photon count   Step   Photon count   Step   Photon count"
+12230     FMAX = 0: FOR K = Y8 - 150 TO Y8 + 150 STEP 10: REM scan forward
+12240       GOSUB 20000: IF HF%=1 THEN 13000
+12245     IF NDF%=1 AND VAL(M5$)<320 THEN M5$=STR$(VAL(M5$)+64): B$ = "Too bright, ("+STR$(F(J+1))+" at step "+STR$(K)+"), restarting line "+STR$(IL%)+" with ND"+STR$(VAL(M5$)/64):PRINT#4,B$:GOSUB 3050:GOTO 12070
+12247     IF NDF%=2 AND VAL(M5$)<256 THEN M5$=STR$(VAL(M5$)+128): B$ = "Too bright, ("+STR$(F(J+1))+" at step "+STR$(K)+"), restarting line "+STR$(IL%)+" with ND"+STR$(VAL(M5$)/64):PRINT#4,B$:GOSUB 3050:GOTO 12070
+12250     NEXT
+12260     GOSUB 22000:LOCATE 9,32:PRINT "Scanning slit";J;" (";LSN(IL%);" to ";HSN(IL%);")":LOCATE 11,9:PRINT "Step   Photon count   Step   Photon count   Step   Photon count"
+12270     FOR K = Y8 + 150 TO Y8 - 150 STEP -10: REM scan backward
+12280       GOSUB 20000: IF HF%=1 THEN 13000
+12290     NEXT
+12300     PRINT #8, "eof": 
+12301     Print #8, RIGHT$("###" + NO$, 3)+" ";TYP$
+12302     Print #8, "slit ";j 
+12303     Print #8, "ZERO ";Zero 
+12304     Print #8, "CalStep ";MC$
+12305     Print #8, "TE ";TE%
+12306     Print #8, "ND ";STR$(VAL(M5$)/64)
+12307     GOSUB 15000
+12308     Print #8, "LAMP ";L.L$:Print #8, "PORT ";L.P$:Print #8, "MODE ";MDD$
+12309     CLOSE 8
+12310   NEXT J
+12320 NEXT IL%
+13000 '
+55555 ' *** Clean Up and Exit ***
+55555 '
+13010 IF HF%=1 THEN CLOSE 8: LOCATE 24,1: PRINT "DSP scan aborted";:X = 1:GOSUB 7220
+55555 '
+13020 O1$="M,6,"+STR$(MX%):IF TYP$="mkiv" AND Q9%=1 THEN GOSUB 9450: REM Switch only on a MKIV!
+13030 IF MDD$="n2" THEN M8$ = STR$(ZERO-SWITCH%+1) ELSE M8$ = STR$(ZERO+1) 
+13035 GOSUB 9805: M8$="-1":GOSUB 9805: M8$=MC$: GOSUB 9805
+13040 FL$=DD$+"\DSP-"+RIGHT$("###" + NO$, 3)+"\" + JD$ + YE$ + "\DSP."+NO$:OPEN FL$ FOR OUTPUT AS 8
+13050 PRINT#8, "DSPv3": PRINT#8, NO$: PRINT#8, JD$+YE$: PRINT#8, MC$
+13060 PRINT#8, ZERO: PRINT#8, LN1: PRINT#8, LN2: FOR I=LN1 TO LN2: PRINT#8, LSN(I): PRINT#8, HSN(I): NEXT
+13070 CLOSE 8:ERASE LSN,HSN,WV,AN:CHDIR BREWDIR$:RETURN
+15000 ' Set up L$
+15000   IF AN(IL%)=0 THEN L.P$ = "I": L.L$= "HG":GOTO 15030
+15010   IF AN(IL%)=>ER%*2/3 THEN L.P$ = "U": L.L$= DSPL$(VC)
+15020   IF AN(IL%)< ER%*2/3 THEN L.P$ = "Q": L.L$= DSPL$(VC)
+15030   RETURN
+20000 '
+20001 ' *** Scans Through Currently Selected Line ***
+55555 '
+20010 O1$ = "M,10," + STR$(K):NDF%=0
+20020 IF TYP$ = "mkiii" THEN O1$ = O1$ + SE$ + "M," + N9$ + "," + STR$(INT(K * GS + GI + .5))
+20030 O1$ = O1$ + ";R," + WL$ + "," + WU$ + ",4;O": GOSUB 9450
+20040 TI = TIMER * 60: TD = TI + 3000: LOCATE 4,2
+20050 XI = 0: XN = 0: GOSUB 9940: A = (K - Y8) / 10 + 15
+20060 LOCATE 13+A-11*INT(A/11),9+22*INT(A/11)
+20070 PRINT USING "####   ##########";K;F(J+1)
+20080 PRINT#8,USING "####   ##########";K;F(J+1)
+20085 IF F(J+1) > 300000 THEN NDF%=1
+20086 IF F(J+1) > 300000 AND ABS(K-Y8)>=30 THEN NDF%=2
+20088 IF F(J+1) > FMAX THEN FMAX = F(J+1)
+20090 GOSUB 2090: RETURN
+22000 '
+55555 ' *** Set Up Screen Display ***
+22002 '
+22010 PRINT CL$
+22020 LOCATE 4,28:PRINT "Line             Wavelength         Lamp    ND";STR$(VAL(M5$)/64);
+22030 LOCATE 6,28:PRINT USING " ## (## to ##)    ####.##       ##";IL%;LN1;LN2;WV(IL%);
+22040 IF AN(IL%)=0 THEN PRINT     "Internal:HG lamp";:GOTO 22070
+22050   IF AN(IL%)=>ER%*2/3 THEN PRINT "External "+DSPL$(VC)+" :UVB dome";
+22060   IF AN(IL%)< ER%*2/3 THEN PRINT "External "+DSPL$(VC)+" :Quartz window";
+22070 RETURN
+55555     REM CREATING THE FOLDER FOR THE FILES
+32790     ON ERROR GOTO 32860
+32800     DL$ = DD$ + "DSP-"+RIGHT$("###" + NO$, 3): MKDIR DL$
+32812     'CHDIR DL$  
+32820     FL$ = DL$+"\"+JD$ + YE$
+32830     ON ERROR GOTO 32870
+32840     MKDIR FL$ : 
+32850     RETURN
+32860     RESUME 32812
+32870     RESUME 32850
+55555 '
+65529 REM proper last line

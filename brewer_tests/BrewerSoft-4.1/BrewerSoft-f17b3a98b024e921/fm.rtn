@@ -1,0 +1,117 @@
+10000 REM ************ fm.rtn 01/02/2013 19:47:10 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM        MKII/MKIII/MKIV Focused Moon Observations
+10020 REM
+10030 REM           (SCI-TEC Instruments, February 1998)
+10040 REM
+10050 REM  See Also:
+10060 REM *********************************************************
+10070 REM
+10080 REM  Focused moon
+10090 REM
+10200 REM  Side Effects:
+10210 REM
+10220 REM  Global Variables Referenced:
+10230 REM    MS() DS% HF% UC% TD XN
+10240 REM    CL$ CY$ CZ$ M5$ MDD$ SQ$ TR$ TYP$ ZS$
+10250 REM
+10260 REM  Exits: 11200, 11230, 14020, 15030
+10270 REM
+10280 REM  Uses:  2450, 3200, 3220, 4200, 6610, 6630, 6636, 6650,
+10290 REM         6690, 7000, 7500, 7750, 7800, 8000, 8200, 9650,
+10300 REM         9670, 9700, 9900
+10310 REM
+10500 REM **********************************************************
+10510 REM  History: dd/mm/yy
+55555 REM  01/02/13 - Fixed saving comments into the b-file
+10520 REM  06/02/98 - Day advance allowed while waiting for the moon;
+10530 REM  more diagnostic information added
+10540 REM  12/10/95 - Fixed bug lines 11250,11260 and removed slit 0 line 13010
+10550 REM  20/12/94 - Rewritten by TM
+10560 REM **********************************************************
+11000 WA = 1: ' Wait for 11 minutes if no moon obs expected. Set to 0 to quit instead.
+11001 ' *** Wait for the Moon to Rise ***
+11002 gosub 5730: if Moon.Age>0.75 or Moon.Age<0.25 then B$="Lunar phase is less than a half ": goto 15000: rem exit
+11100 TR$="f"+"m":UC%=0:ZAP=1000:B$="Waiting for the moon to rise above ZA = 75"
+11110 PRINT CL$:LOCATE 10,10:PRINT B$:IF FP%<>0 THEN PRINT#4,B$
+11120 LOCATE 14,18:PRINT "Press home for menu"
+11130 :
+11200 FLAG=1:GOSUB 7800:GOSUB 5600:GOSUB 2090:IF HF%<>0 THEN RETURN
+11210   IF ZC>ZF AND SK$<>"" THEN B$="Time for entry"+STR$(ZF):GOTO 15010
+11220   LOCATE 16,18:PRINT USING "Solar ZA = ###.##";ZA
+11230   IF T0>720 THEN T0%=1:REM set t0% if pm gmt
+11240   IF (T0%=0) OR (T0>710) THEN 11300:REM no new gmtday
+11250     T0%=0:DA%=DA%+1:IF LD%=1 THEN GOSUB 5650:LD%=0
+11260     DA$=RIGHT$(STR$(DA%+100),2):DB$=DA$+"/"
+11270     PRINT#4,"    Observations for ";MP$;DB$;YE$:GOSUB 3225
+11280     GOSUB 2500:GOSUB 7700:GOSUB 5200:GOSUB 7800
+11290     IF ZC<0 THEN DC$=MP$+DB$+YE$
+11300   IF ZC>0 THEN ZA%=1:REM set za% if local pm
+11310   IF (ZA%=0) OR (ZC>0) THEN 11400:REM if no new local day
+11320     B$="End of local day"+STR$(JD%):GOTO 15010
+11400   FLAG=2:GOSUB 7800:GOSUB 2090:IF HF%<>0 THEN RETURN
+11410   LOCATE 18,18:PRINT USING "Lunar ZA = ###.##";ZA
+11420   IF ABS(ZA)>ABS(ZAP) THEN B$="Moon is moving down ("+STR$(ZAP)+" ->"+STR$(ZA)+")":GOTO 15000
+11430   IF ZAP=1000 THEN ZAP=ABS(ZA)+0.2
+11440 IF ZA=>75 THEN GOSUB 7750:GOTO 11200
+12000 '
+12001 ' *** Setup ***
+12002 '
+12010 DATA fm
+12020 IF VAL(SQ$)<128 AND TYP$="mkiv" THEN SQ$="128"
+12050 GOSUB 6610:GOSUB 6635					'Filter#1 to 3
+12060 M5$=SQ$:GOSUB 6650					'Filter#2 to SQ$
+12070 GOSUB 6690:GOSUB 7750					'Iris closed, AZ/ZE to moon
+12080 LOCATE ,SP:PRINT "4 - Point Brewer at moon"
+12090 TD=1500:GOSUB 7000:GOSUB 9650:GOSUB 7500			'Wait until ready, test intensity
+13000 '
+13001 ' *** Take Set of Observations ***
+13002 '
+13010 GOSUB 2450:CZ$="80":WL$="1":WU$="6":GOSUB 9700
+13020 GOSUB 8000:MS(0)=11:DS%=0
+13030 SQ$=M5$
+13040 DS%=DS%+1:GOSUB 20000
+13050 IF HF%<>0 OR DS%=5 THEN 14000
+13060 GOTO 13040
+14000 '
+14001 ' *** Clean Up and Exit ***
+14002 '
+14010 GOSUB 4200:GOSUB 3220
+14020 RETURN
+15000 '
+15001 ' *** Abort Message and Exit ***
+15002 '
+15003 ' No moon is expected: Wait for 11 minutes or quit?
+15004 PRINT#4,B$:gosub 3050
+15005 IF WA <> 0 THEN GOSUB 16000
+15010 B$=B$+" - aborting focused moon measurement"
+15020 LOCATE 20,2:PRINT B$:IF FP%<>0 THEN PRINT#4,B$:gosub 3050
+15030 X=2:GOSUB 7220:RETURN
+15100 '
+16000 'Wait for 11 minutes.
+16010 TA=TIMER*60+11*60*60:A$=""
+16013 IF (TIMER*60) < (5184000-15*60*60) THEN 16020
+16017 RETURN:REM (5 min + wait period) required before midnight
+16020 T0=TA/60/60:GOSUB 8600
+16030 B$="No moon observations expected. Waiting until "+H$+" to continue schedule":PRINT CL$:PRINT B$:GOSUB 3050
+16040 IF TA>5165900! THEN TA=TA-5166000!:GOSUB 16100
+16045 IF A$=Q1$ THEN RETURN
+16046 GOSUB 2093:IF HF%<>0 THEN RETURN
+16050 IF TIMER*60<TA THEN GOSUB 9891:A$=INKEY$:GOTO 16045
+16055 T0=TIMER/60
+16060 RETURN
+16100 REM wait until changeover if new day is necessary
+16105 A$=INKEY$:IF A$=Q1$ THEN RETURN
+16110 IF TIMER*60>2500000! THEN 16100 
+16120 RETURN
+20000 '
+20001 ' *** Focused Moon Observation ***
+20002 '
+20010 GOSUB 9670:GOSUB 9900					'Get data when ready
+20020 IF HF%<>0 THEN PRINT CL$:PRINT "FM measurement terminated":RETURN
+20030 IF XN=1 OR DS%<5 THEN GOSUB 9700				'Take a reading
+20040 IF XN=1 THEN 20010:REM restart obs
+20050 GOSUB 4400:GOSUB 8200					'Store and display data
+20060 GOSUB 3200						'Output buffer if needed
+20070 RETURN
+65529 REM *** dummy line ***

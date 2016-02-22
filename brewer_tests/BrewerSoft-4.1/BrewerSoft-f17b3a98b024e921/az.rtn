@@ -1,0 +1,89 @@
+10000 REM ************ az.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM                  MKII/MKIII/MKIV Zero Azimuth
+10020 REM
+10030 REM                (SCI-TEC Instruments, July 1998)
+10040 REM
+10050 REM  See Also:  RE.RTN, SR.RTN
+10060 REM *************************************************************
+10070 REM
+10080 REM  This routine searches for the zeroing sensor on the azimuth
+10090 REM  motor, and calculates a discrepancy value which is the
+10100 REM  difference between the azimuth actual position and the
+10110 REM  expected position.
+10120 REM
+10220 REM  Global Variables Referenced:
+10230 REM    AZ% B5% SR% Q2% TA%
+10240 REM    VA  O1$
+10250 REM
+10260 REM  Exits: 17020
+10270 REM
+10280 REM  Uses:  2090, 3220, 9190, 9400, 9450
+10290 REM
+10500 REM **************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  17/07/98 - Supports new Brewer electronics
+10530 REM  05/01/95 - Writes AZ information to B file
+10540 REM  05/12/94 - Created by TM; original algorithm obtained from
+10550 REM  RE.RTN
+10560 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA az
+16000 '
+16001 ' *** Zeroing Azimuth Motor ***
+16002 '
+16010 IF Q2%=0 THEN 17000
+16020 PRINT CL$:LOCATE ,SP:PRINT"Zeroing azimuth":PRINT #4, "Zeroing Azimuth at ";TIME$:IF Q14%=1 THEN FLAG=1:M1$="2":GOSUB 6550:MS%=AZ%-Y:GOTO 16330
+16030 MS%=0:O1$="L,19413,0,19414,200":GOSUB 9400:REM Speed up motor for azimuth
+16040 IF AZ%>(SR%*.8) THEN O1$="M,2,-"+STR$(INT(SR%*.2)):GOSUB 9450:MS%=(SR%*.2):PRINT #4, "Moving ";ms%;" steps CCW"
+16050 :
+16060 O1$="M,2,-300:G,800":GOSUB 9450:MS%=MS%+300:PRINT #4, "Moving 300 steps CCW: ";
+16070 GOSUB 2090:IF MS%>18000 OR TA%=1 THEN 16800
+16075 IF (VA AND B5%)<>B5% THEN PRINT #4, "LED5 is open": ELSE PRINT #4, "LED5 is closed"
+16080 IF (VA AND B5%)<>B5% THEN 16060
+16090 :
+16100 NLOOP%=0
+16110 NLOOP%=NLOOP%+1:O1$="M,2,51:M,2,-1:G,800":GOSUB 9450:GOSUB 9190:MS%=MS%-50:PRINT #4, "Moving 50 steps CW: ";
+16120 GOSUB 2090:IF NLOOP%>30 OR TA%=1 THEN 16800
+16125 IF (VA AND B5%)<>B5% THEN PRINT #4, "LED5 is open": ELSE PRINT #4, "LED5 is closed"
+16130 IF (VA AND B5%)=B5% THEN 16110
+16140 O1$="M,2,-101":GOSUB 9450:MS%=MS%+101:PRINT #4, "Moving 50 steps CCW"
+16150 :
+16160 NLOOP%=0
+16170 NLOOP%=NLOOP%+1:O1$="M,2,16:M,2,-1:G,800":GOSUB 9450:GOSUB 9190:MS%=MS%-15:PRINT #4, "Moving 15 steps CW: ";
+16180 GOSUB 2090:IF NLOOP%>30 OR TA%=1 THEN 16800
+16185 IF (VA AND B5%)<>B5% THEN PRINT #4, "LED5 is open": ELSE PRINT #4, "LED5 is closed"
+16190 IF (VA AND B5%)=B5% THEN 16170
+16200 O1$="M,2,-36":GOSUB 9450:MS%=MS%+36:PRINT #4, "Moving 16 steps CCW"
+16210 :
+16220 NLOOP%=0
+16230 NLOOP%=NLOOP%+1:O1$="M,2,5:M,2,-1:G,800":GOSUB 9450:GOSUB 9190:MS%=MS%-4:PRINT #4, "Moving 4 steps CW: ";
+16240 GOSUB 2090:IF NLOOP%>30 OR TA%=1 THEN 16800
+16245 IF (VA AND B5%)<>B5% THEN PRINT #4, "LED5 is open": ELSE PRINT #4, "LED5 is closed"
+16250 IF (VA AND B5%)=B5% THEN 16230
+16260 O1$="M,2,-10":GOSUB 9450:MS%=MS%+10:PRINT #4, "Moving 5 steps CCW"
+16270 :
+16280 NLOOP%=0
+16290 NLOOP%=NLOOP%+1:O1$="M,2,2:M,2,-1:G,800":GOSUB 9450:GOSUB 9190:MS%=MS%-1:PRINT #4, "Moving 1 steps CW: ";
+16300 GOSUB 2090:IF NLOOP%>30 OR TA%=1 THEN 16800
+16305 IF (VA AND B5%)<>B5% THEN PRINT #4, "LED5 is open": ELSE PRINT #4, "LED5 is closed"
+16310 IF (VA AND B5%)=B5% THEN 16290
+16320 :
+16330 PRINT CL$:LOCATE ,SP:B$="Azimuth discrepancy = "+STR$(AZ%-MS%)
+16340 PRINT B$:PRINT"Positioning Tracker to sun":PRINT#4,"Azimuth zeroed at ";TIME$;" ";B$
+16350 GOSUB 3050
+16360 TA%=0:GOTO 17000
+16370 :
+16800 REM *** Azimuth zeroing (non-critical) failure
+16810 LOCATE ,SP:AZ%=AZ%-MS%
+16820 IF TA%=0 THEN B$="Azimuth tracker ZEROING FAILURE !!":HF%=1:PRINT B$:PRINT#4,B$:GOSUB 3050
+16830 IF TA%=1 THEN TA%=0:PRINT "Aborted":PRINT#4, "Azimuth zeroing aborted"
+16840 X=1:GOSUB 7220:GOTO 17000
+17000 '
+17001 ' *** Quit ***
+17002 '
+17010 IF Q14%=0 THEN O1$="L,19413,0,19414,255":GOSUB 9450:REM restore slower motor speed
+17020 AP%=0:GOSUB 7750:GOSUB 3220:RETURN
+65529 REM proper last line

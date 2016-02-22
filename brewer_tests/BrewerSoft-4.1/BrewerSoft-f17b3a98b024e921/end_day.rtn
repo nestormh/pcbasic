@@ -1,0 +1,78 @@
+10000 REM ************ end_day.rtn 10/05/2011 14:00:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM     MKII/MKIII/MKIV: Set Up Command Sequence for End of Day
+10002 REM
+10003 REM Note: this ED version requires a date
+10004 REM       ie. "end_day apr28/89"; "end_day 20894"
+55555 REM  Volodya: added the option of processing multiple (consecutive) days
+55555 REM  to process 5 days starting with 11911 use
+55555 REM  "end_day 11911#5" or "end_day apr29/11#5"
+55555 REM  it is ok to put spaces around the # delimiter 
+55555 REM  ie. "end_day 11911 # 5"
+10004 REM ***************************************************************
+11000 DATA end_day
+12000 IF DREP > 0 THEN JD$ = RIGHT$(STR$(VAL(JD$)+1001),3): DREP = DREP-1: QR=1: GOTO 3400
+13000 IF INSTR(A$,"end_day") = 0 THEN QC=1:G$(QC)="endday":QR=1:GOTO 3400
+14000 IO=0:MDD2$=A$
+14010 IO=IO+1:IF LEFT$(G$(IO+1),7)="end_day" THEN G$(IO)=G$(IO+1):GOTO 14010
+14020 PRINT#4,CHR$(12):'PRINT CL$;"Position paper to top of page"
+14030 'GOSUB 9650
+16000 '
+16001 ' *** Create list of summary files to execute ***
+16002 '
+16010 QC=0
+16020                       QC=QC+1:G$(QC)="p"+"d"
+16030                       QC=QC+1:G$(QC)="s"+"um"
+16040                       QC=QC+1:G$(QC)="o"+"zsum"
+16043                       QC=QC+1:G$(QC)="a"+"psum"
+16045                       QC=QC+1:G$(QC)="a"+"odsum"
+16050                       QC=QC+1:G$(QC)="u"+"vsum"
+16060 IF TYP$="mkiv" THEN   QC=QC+1:G$(QC)="n"+"osum"
+16070 IF TYP$="mkiv" THEN   QC=QC+1:G$(QC)="z"+"ssum"
+16075 IF TYP$="mkiv" THEN   QC=QC+1:G$(QC)="z"+"wsum"
+16080                       QC=QC+1:G$(QC)="f"+"msum"
+16090                       QC=QC+1:G$(QC)="f"+"zsum"
+16100                       QC=QC+1:G$(QC)="s"+"lsum"
+16110                       QC=QC+1:G$(QC)="h"+"gsum"
+16230                       QC=QC+1:G$(QC)="p"+"f"
+16300                       QC=QC+1:G$(QC)="e"+"nd_day"
+17000 '
+17001 ' *** Prepare for Command Sequence Execution ***
+17002 '
+17010 QR=1:REM    Set command repeat to 1, number of commands (QC) already set
+17020 JJ=IO-1:REM Set command counter to IO-1
+17030 JD$(1)=JD$:YF$(1)=YF$:DC$(1)=DC$
+18000 '
+18001 ' *** Convert Date (A$) into Day/Year (JD$/YF$) ***
+18002 '
+18010 A$=MDD2$:IF LEFT$(A$,7)="end_day" THEN A$=MID$(A$,8)
+18020 IF LEFT$(A$,1)=" " THEN A$=RIGHT$(A$,LEN(A$)-1):GOTO 18020
+18022 PRINT#4, A$:DLM=INSTR(A$,"#"): IF DLM > 0 THEN DREP = VAL(MID$(A$,DLM+1))-1: A$=LEFT$(A$,DLM-1)
+18024 IF RIGHT$(A$,1)=" " THEN A$=LEFT$(A$,LEN(A$)-1):GOTO 18024
+18030 IF LEN(A$)=>2 THEN 18100
+18040 PRINT"Bad date entered: (";A$;")"
+18050 X=1:GOSUB 7220:RETURN
+18100 YF$=RIGHT$(A$,2)
+18110 DC$=A$:A$=LEFT$(A$,LEN(A$)-2)
+18120 IF VAL(A$)<>0 THEN JD$=STR$(INT(VAL(A$)+1000.5)):JD$=RIGHT$(JD$,LEN(JD$)-2):GOTO 20000
+18130 A$=LEFT$(A$,3):A=0
+18140 IF A$="feb"THEN A=31
+18150 IF A$="mar"THEN A=59
+18160 IF A$="apr"THEN A=90
+18170 IF A$="may"THEN A=120
+18180 IF A$="jun"THEN A=151
+18190 IF A$="jul"THEN A=181
+18200 IF A$="aug"THEN A=212
+18210 IF A$="sep"THEN A=243
+18220 IF A$="oct"THEN A=273
+18230 IF A$="nov"THEN A=304
+18240 IF A$="dec"THEN A=334
+18250 A$=DC$:IF A>50 AND INT(VAL(YF$)/4)=VAL(YF$)/4 THEN A=A+1
+18260 IF VAL(A$)=0 THEN A$=RIGHT$(A$,LEN(A$)-1):GOTO 18260
+18270 A=A+VAL(A$):JD$=RIGHT$(STR$(INT(A+.5)+1000),3)
+20000 '
+20001 ' *** Begin Command Sequence ***
+20002 '
+20010 IF RM%=1 THEN RETURN:REM return if called from command sequence
+20020 GOTO 3400:REM goto command sequence if called from menu
+65529 REM dummy last line

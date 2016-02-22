@@ -1,0 +1,105 @@
+10000 REM ************ dp.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM         MKII/MKIII/MKIV Dispersion Test Routine
+10020 REM
+10030 REM          (SCI-TEC Instruments, December 1999)
+10040 REM
+10050 REM   See Also: dsp1.rtn
+10060 REM *******************************************************
+10070 REM
+10080 REM  This routine sets up a default or custom DSP scan.
+10090 REM  A custom scan can specify what range of slits to use,
+10100 REM  the set of frequencies (3 to 9) and associated
+10120 REM  neutral density and lamp source.
+10130 REM
+10140 REM  Global Variables Referenced:
+10150 REM    DC()  DN%  ER%  G$  MDD$  NDC()  QC  QR  SP  TYP$  ZU%
+10160 REM
+10170 REM  Exits: 10530, 11080, 14050
+10180 REM
+10190 REM  Uses:  2000, 2030, 7220, 9650
+10200 REM
+10300 REM ********************************************************
+10310 REM  History: dd/mm/yy
+10320 REM  19/04/95 - Better scan handling procedure
+10330 REM  18/11/94 - Autodetection of slit 0 data added
+10340 REM  14/09/94 - New method for passing slit ranges
+10350 REM  implemented (up to nine wavelengths)
+10360 REM  05/07/94 - Handles MKII/MKIII/MKIV automatically,
+10370 REM  22/08/96 - removed 302 line and added 308 to MKII
+10380 REM ********************************************************
+10500 '
+10501 ' *** Check Brewer Mode First, Set Slit 0 Autodetect ***
+10502 '
+10510 DATA dp
+10520 IF MDD$ = "o3" THEN 10600
+10530 PRINT #4,"DSP is not an NO2 Routine": PRINT"DSP is not an NO2 Routine"
+10540 X=1: GOSUB 7220: RETURN
+10600 FLAG = 1: IF DC(0,1) <> 0 THEN FLAG = 0
+11500 A$="1"
+11530 VA = VAL(A$)
+11550 IF TYP$ = "mkii" OR ZERO+VAL(MC$) > 3000 THEN GOSUB 20000: GOTO 14000
+11560 GOSUB 21000
+14000 '
+14001 ' *** Prepare to Run Dispersion Test ***
+14002 '
+14010 PRINT CL$
+14020 LOCATE ,SP: PRINT "Ready to run dispersion test": PRINT
+14030  QR = 1
+14040 IF TYP$= "mkiii" THEN QC = 4: G$(1) = "h" + "p": G$(2) = "h" + "g":   G$(3) = "dsp" + "1": G$(4) = "h" + "g"
+14050 IF TYP$<>"mkiii" THEN QC = 3: G$(1) = "h" + "g": G$(2) = "dsp" + "1": G$(3) = "h" + "g"
+14060 GOTO 3400
+20000 '
+20001 ' *** Set Up the Parameters as Appropriate for a MKII Brewer ***
+20002 '
+20010 IF VA>1 THEN 20500
+20020   LN1 = 1: LN2 = 2
+20030   LSN(1) = FLAG:   LSN(2) = FLAG
+20040   HSN(1) = 2:      HSN(2) = 5
+20050   WV(1)  = 2893.60:WV(2)  = 2967.28
+20060   ND(1)  = 0:      ND(2)  = 0
+20070   AN(1)  = 0:      AN(2)  = 0
+20072 b$="Doing dispersion with internal HG."
+20075 print#4, b$: gosub 3050:
+20080   RETURN
+20500 LN1 = 3: LN2 = 5
+20510 LSN(3) = FLAG:     LSN(4) = FLAG:   LSN(5) = 1
+20520 HSN(3) = 5:        HSN(4) = 5:      HSN(5) = 5
+20530 WV(3)  = 3080.822: WV(4) = 3133.167:WV(5)  = 3261.055
+20540 ND(3)  = 0:        ND(4)  = 0:      ND(5)  = 0
+20550 AN(3)  = ER%*1/2+HC%:  AN(4)  = AN(3): AN(5)  = AN(3)
+20560 IF VA=3 THEN AN(3) = ZU%: AN(4) = ZU%: AN(5) = ZU%
+20565 b$="Doing dispersion with Cd."
+20566 print#4, b$: gosub 3050:
+20570 RETURN
+21000 '
+21001 ' *** Set Up the Parameters as Appropriate for a MKIII/MKIV Brewer ***
+21002 '
+21010 IF VA>1 THEN 21500
+21020   LN1 = 1: LN2 = 3
+21030   LSN(1) = FLAG:   LSN(2) = FLAG:      LSN(3) = FLAG
+21040   HSN(1) = 1:      HSN(2) = 3:         HSN(3) = 5
+21050   WV(1)  = 2893.60:WV(2)  = 2967.28:  :WV(3)  = 3341.48
+21060   ND(1)  = 0:      ND(2)  = 0:         ND(3)  = 0
+21070   AN(1)  = 0:      AN(2)  = 0:         AN(3)  = 0
+21072 b$="Doing dispersion with internal HG."
+21075 print#4, b$: gosub 3050:
+21080   RETURN
+21500 LN1 = 4: LN2 = 9
+21510 LSN(4) = FLAG:   LSN(5) = FLAG:   LSN(6) = FLAG:    LSN(7) =  FLAG:     LSN(8) = 1:        LSN(9) = 5
+21520 HSN(4) = 5:      HSN(5) = 5:      HSN(6) = 5:       HSN(7) = 5:         HSN(8) = 5:        HSN(9) = 5
+21530 WV(4) = 3080.822:WV(5) = 3133.167:WV(6) = 3261.055: WV(7)  = 3403.652:  WV(8)  = 3499.952: WV(9)  = 3611.51
+21540 ND(4)  = 0:      ND(5)  = 0:      ND(6)  = 0:       ND(7)  = 0:         ND(8) = 0:         ND(9) = 0
+21550 AN(4)  = ER%*1/2+HC%:AN(5)  = AN(4): AN(6)  = AN(4): AN(7)  = AN(4):   AN(8)  = AN(4):  AN(9)  = AN(4)
+21560 IF VA=3 THEN AN(4) = ZU%: AN(5) = AN(4): AN(6) = AN(4): AN(7) = AN(4): AN(8) = AN(4):  AN(9) = AN(4)
+21565 b$="Doing dispersion with Cd."
+21566 print#4, b$: gosub 3050:
+21570 RETURN
+21600 LN1 = 9: LN2 = 9
+21610 LSN(9) = FLAG
+21620 HSN(9) = 5
+21630 WV(9)  = 3282.33
+21640 ND(9)  = 1
+21650 AN(9)  = ZU%
+20670 RETURN
+65529 REM proper last line

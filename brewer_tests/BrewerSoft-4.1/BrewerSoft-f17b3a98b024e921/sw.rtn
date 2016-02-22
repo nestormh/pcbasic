@@ -1,0 +1,82 @@
+10000 REM ************ sw.rtn 13/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM                  MKIV Switch Operating Modes
+10020 REM
+10030 REM              (SCI-TEC Instruments, October 1998)
+10040 REM
+10050 REM  See Also:
+10060 REM ***********************************************************
+10070 REM
+10080 REM  This routine switches a MKIV Brewer from O3 to NO2 mode,
+10090 REM  or vice-versa.
+10100 REM
+10110 REM  Side Effects:
+10120 REM
+10130 REM  Global Variables Used:
+10140 REM    AD SP TA TD TI TIMER VA
+10150 REM    CL$ CP$ DL$ I1$ M1$ M2$ M3$ M4$ M5$ M9$ O1$ TD TIME$ TR$
+10160 REM    AZOLD% B5% B6% CP% FP% HF% IS% Q1% Q2% SR% UC%
+10170 REM
+10180 REM  Exits: 11060, 11150, 12010, 16010
+10190 REM
+10200 REM  Uses: 2090, 3300, 7000, 7050, 7220, 9190, 9270, 9300,
+10210 REM        9400, 9450, 9500, 9890
+10220 REM
+10230 REM ***********************************************************
+10240 REM  History: dd/mm/yy
+10250 REM  20/10/98 - Full support for the new Brewer electronics
+10260 REM  23/03/98 - Q9% support added
+10270 REM  22/11/94 - Updates the operating state when switch occurrs
+10280 REM  05/10/94 - Cleaned up code, disabled SW with a warning
+10290 REM  07/07/94 - Updated to #nnn.FIL, removed DISK.FIL reference
+10300 REM  24/05/94 - TEXT6$ added to the DISK.FIL reference
+10310 REM ***********************************************************
+10500 DATA sw
+11000 '
+11001 ' *** Check Which Mode Brewer is Currently in ***
+11002 '
+11010 IF MDD2$<>"" THEN 11100
+11020 PRINT#4,:PRINT#4,"WARNING - Do not use SW command to switch modes; use N2 and O3 instead"
+11030 PRINT#4,:PRINT   "WARNING - Do not use SW command to switch modes; use N2 and O3 instead"
+11040 TA=180:GOSUB 7050
+11050 TI=TIMER*60:IF TI<TA THEN 11050
+11060 RETURN
+11100 IF MDD2$<>MDD$ THEN 12000
+11110 PRINT#4,:PRINT#4,"Brewer is already in "+MDD$+" mode."
+11120 PRINT#4,:PRINT   "Brewer is already in "+MDD$+" mode."
+11130 X=1:GOSUB 7220:RETURN
+12000 '
+12001 ' *** Switch Operating Modes ***
+12002 '
+12010 IF TYP$<>"mkiv" THEN RETURN
+12020 PRINT#4,"ZA= ";ZA;"MU= ";M2;"  ";TIME$;"    ";DATE$;" INST# ";NO$
+12030 PRINT#4,CHR$(10),CHR$(10):CLS
+12040 'IF FP%=0 THEN CLOSE 4:OPEN "scrn:" FOR OUTPUT AS 4
+12050 IF MDD$="n2" THEN GOSUB 14000 ELSE GOSUB 13000
+12060 GOTO 16000
+13000 '
+13001 ' *** Switch to NO2 If Mode is O3 ***
+13002 '
+13010 B$="Switching #"+NO$+" to NO2 operation at "+TIME$:LOCATE 5,1:PRINT B$
+13020 PRINT#4,:PRINT#4,B$:PRINT#4,:GOSUB 3050
+13030 O1$="M,10,"+STR$(-(SWITCH%+10)):GOSUB 9450
+13040 O1$="M,10,10":GOSUB 9450
+13050 IF Q9%=1 THEN O1$="M,6,"+STR$(NMX%):GOSUB 9450
+13060 MDD$="n2":RETURN
+14000 '
+14001 ' *** Switch to O3 If Mode is NO2 ***
+14002 '
+14010 B$="Switching #"+NO$+" to O3/SO2 operation at "+TIME$:LOCATE 5,1:PRINT B$
+14020 PRINT#4,:PRINT#4,B$:PRINT#4,:GOSUB 3050
+14030 O1$="M,10,-1":GOSUB 9450
+14040 O1$="M,10,"+STR$(SWITCH%-VAL(MC$)+2):GOSUB 9450
+14050 O1$="M,10,-1:M,10,"+MC$:GOSUB 9450
+14060 IF Q9%=1 THEN O1$="M,6,"+STR$(MX%):GOSUB 9450
+14064 IF Q9%=1 THEN O1$="M,6,50":GOSUB 9450
+14068 IF Q9%=1 THEN O1$="M,6,"+STR$(MX%):GOSUB 9450
+14070 MDD$="o3":RETURN
+16000 '
+16001 ' *** Exit ***
+16002 '
+16010 GOSUB 2500:GOSUB 5200:RETURN
+65529 ' dummy last line

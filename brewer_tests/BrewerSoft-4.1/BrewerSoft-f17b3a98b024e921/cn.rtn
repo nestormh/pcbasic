@@ -1,0 +1,9 @@
+10000 REM ************ cn.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 data cn
+11000 RM%=0:SK$=MSK$:B$="Starting schedule "+SK$:PRINT#4,B$:GOSUB 3050:DI$="skc":GOSUB 5200
+11010 UC%=0:JJ=0:QC=0:REM reset command counter to zero
+11110 G$(0)="s"+"kc"
+11430 B$="skc":GOTO 2682
+30000 return
+65529 rem dummy

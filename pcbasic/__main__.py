@@ -8,6 +8,14 @@ This file is released under the GNU GPL version 3.
 """
 
 import os
+
+os.environ["PYSDL2_DLL_PATH"] = "C:\\Python27\\share\\sdl2\\bin"
+# print os.environ
+# for k in os.environ.keys():
+#     print k, "=", os.environ[k]
+# exit()
+
+
 import sys
 import shutil
 import logging
@@ -159,7 +167,7 @@ def start_basic():
             run.start('', False, config.get('quit'))
         else:
             # load/run program
-            config.options['run'] = config.get(0) or config.get('run')
+            config.options['run'] = config.get(1) or config.get('run')
             prog = config.get('run') or config.get('load')
             if prog:
                 # on load, accept capitalised versions and default extension
@@ -276,7 +284,7 @@ def debug_details():
     logging.info('python: %s %s', sys.version.replace('\n',''), ' '.join(platform.architecture()))
     logging.info('\nMODULES')
     # try numpy before pygame to avoid strange ImportError on FreeBSD
-    modules = ('numpy', 'win32api', 'sdl2', 'pygame', 'curses', 'pexpect', 'serial', 'parallel')
+    modules = ('numpy', 'win32api', 'pygame', 'curses', 'pexpect', 'serial', 'parallel')
     for module in modules:
         try:
             m = __import__(module)

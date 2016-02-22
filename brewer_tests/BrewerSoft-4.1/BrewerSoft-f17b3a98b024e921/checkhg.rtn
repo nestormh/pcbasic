@@ -1,0 +1,6 @@
+10000 REM ************ checkhg.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 data checkhg
+20000 IF HG.ADJ>0 THEN B$="Last HG had to adjust the micrometer by at least "+STR$(HG.ADJ) ELSE B$="Last HG was OK"
+30000 PRINT #4, B$: GOSUB 3050: RETURN
+65529 rem dummy

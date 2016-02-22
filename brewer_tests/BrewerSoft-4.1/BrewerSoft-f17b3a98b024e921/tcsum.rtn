@@ -1,0 +1,105 @@
+10000 REM ************ tcsum.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM             MKII/MKIV TC Summary Routine
+10020 REM        
+10030 REM           (SCI-TEC Instruments, July 1995)
+10040 REM        
+10050 REM   See Also:
+10060 REM *******************************************************
+10070 REM
+10080 REM  This routine changes a daily summary file using
+10090 REM  updated TC coefficients.
+10100 REM
+10200 REM
+10210 REM  Global Variables Referenced:
+10220 REM    TC() TQ()
+10230 REM    DD$ JD$ NO$ YF$
+10240 REM
+10250 REM  Exits: 10430, 10530, 11040, 31040
+10260 REM
+10270 REM  Uses:  2500, 3100
+10280 REM
+10300 REM ********************************************************
+10310 REM  History: dd/mm/yy
+10320 REM  14/07/95 - Now uses Brewer S file only
+10330 REM  01/04/94 - Original version
+10340 REM ********************************************************
+10400 '
+10401 ' *** Check Brewer Mode First ***
+10402 '
+10410 IF MDD$="o3" THEN 10500
+10420 B$="TCSUM is not an NO2 Routine":PRINT#4,B$:PRINT B$
+10430 X=1:GOSUB 7220:RETURN
+10500 :
+10510 IF TYP$<>"mkiii" THEN 11000
+10520 B$="TCSUM is not a MKIII routine":PRINT#4,B$:PRINT B$
+10530 X=1:GOSUB 7220:RETURN
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA tcsum
+11020 I=1:GOSUB 5400:REM temp coeffs
+11030 GG=0
+12000 '
+12001 ' *** Open Summary Data File and Temporary Output File ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"S"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12030 ON ERROR GOTO 31000
+12040 CLOSE 6:OPEN DD$+"DUMMY."+NO$ FOR OUTPUT AS 6
+12500 CLOSE 8:OPEN DD$+"S"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12510 PRINT CL$:B$="Processing temperature data in file S"+JD$+YF$+"."+NO$
+12520 PRINT B$:PRINT#4,B$
+13000 '
+13001 ' *** Process All Brewer Data ***
+13002 '
+13010 GOSUB 8000:GOSUB 8025:MS(0)=4:MZ(0)=4:T%=0
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$:PRINT#6,A$:IF A$="inst" THEN GOSUB 25000
+13120   IF A$<>"summary" THEN 13100
+13130   FOR I=1 TO 6:INPUT#8,A$:PRINT#6,A$:NEXT:MU=VAL(A$)
+13140   INPUT#8,A$:PRINT#6,A$:TQ=VAL(A$)
+13150   INPUT#8,TY$:PRINT#6,TY$
+13160   INPUT#8,A$:PRINT#6,A$
+13170   FOR I=1 TO 3:INPUT#8,A$:PRINT#6,INT(VAL(A$)-T%*TQ*(TQ(I+1)-TQ(5)-TC(I+1)+TC(5))+.5):NEXT
+13180   INPUT#8,A$:PRINT#6,INT(VAL(A$)-T%*TQ*(TQ(5)-TQ(6)-TC(5)+TC(6))+.5)
+13190   INPUT#8,R5:R5=INT(R5-T%*TQ*(TQ(0)-TC(0))+.5):PRINT#6,STR$(R5)
+13200   INPUT#8,R6:R6=INT(R6-T%*TQ*(TQ(1)-TC(1))+.5):PRINT#6,STR$(R6)
+13210   IF TY$<>"ds" THEN FOR I=1 TO 2:INPUT#8,A$:PRINT#6,A$:NEXT:GOTO 13100
+13300     INPUT#8,A$,A$
+13310     OZ=(R6-B1)/MU/A1
+13320     SO=((R5-B2)/MU/A3-OZ)/A2
+13330     OZ=INT(OZ+.5)/10:SO=INT(SO+.5)/10
+13340     PRINT#6,STR$(SO):PRINT#6,STR$(OZ):GOTO 13100
+14000 '
+14001 ' *** Close Brewer Files ***
+14002 '
+14010 PRINT#6,"ef":CLOSE 6:CLOSE 8
+14020 B$="Processing complete":PRINT B$:PRINT#4,B$
+14030 KILL DD$+"S"+JD$+YF$+"."+NO$
+14040 NAME DD$+"DUMMY."+NO$ AS DD$+"S"+JD$+YF$+"."+NO$
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 ON ERROR GOTO 3100
+15020 RETURN
+25000 '
+25001 ' *** Reads in Temperature Coefficients when Data was Recorded and Writes out New Ones ***
+25002 '
+25010 FOR I=2 TO 6:INPUT#8,TQ(I):PRINT#6,TC(I):NEXT:FOR I=1 TO 19:INPUT#8,A$:PRINT#6,A$:NEXT
+25020 INPUT#8,TQ(7),NTQ(7):PRINT#6,TC(7):PRINT#6,NTC(7):FOR I=2 TO 6:INPUT#8,NTQ(I):PRINT#6,NTC(I):NEXT
+25030 TQ(0)=TQ(2)-TQ(5)-3.2*(TQ(5)-TQ(6))
+25040 TQ(1)=TQ(3)-TQ(5)-.5*(TQ(4)-TQ(5))-1.7*(TQ(5)-TQ(6))
+25050 NTQ(1)=.1*NTQ(2)-.59*NTQ(3)+.11*NTQ(4)+1.2*NTQ(5)-.82*NTQ(6)
+25060 T%=1:RETURN
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No summary (S) file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 GOTO 3100
+65529 REM proper last line

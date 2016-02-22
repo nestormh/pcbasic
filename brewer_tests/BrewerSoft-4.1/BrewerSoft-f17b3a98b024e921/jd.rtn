@@ -1,0 +1,11 @@
+10000 REM ************ jd.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM           MKII/MKIII/MKIV This Routine
+10002 REM
+10003 REM sets computer date into op_st.### by running setdate.exe (IOS)
+10004 REM ***************************************************************
+10005 DATA jd
+10080 PRINT#4,"Getting date from computer..."
+10100 shell("setdate"):td=120:gosub 7000:' Wait 2 sec for the buffer flush
+10150 gosub 5300:gosub 6200:return
+65529 REM *** proper last line ***

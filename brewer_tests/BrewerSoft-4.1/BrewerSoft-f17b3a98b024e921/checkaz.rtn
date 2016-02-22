@@ -1,0 +1,18 @@
+10000 REM ************ checkaz.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM             MKII/MKIII/MKIV Azimuth Check Routine
+10002 REM
+10003 REM  This routine checks the azimuth to see if it is positioned
+10004 REM  within the reference sensor, and moves it out if it is. This
+10005 REM  is done to work around a limitation of the December 10 1999
+10006 REM  firmware, which does not reset the azimuth correctly in this
+10007 REM  situation.
+10008 REM
+10009 REM **************************************************************
+10010 DATA checkaz
+20000 IF Q2%=0 THEN RETURN
+20010 M1$="2":GOSUB 6500
+20020 IF Y>=13500 AND Y<16000 THEN O1$="M,2,13400":GOSUB 9450:AZ%=13400
+20025 IF az%>=13500 AND az%<16000 THEN O1$="M,2,13400":GOSUB 9450:AZ%=13400
+20030 RETURN
+65529 REM proper last line

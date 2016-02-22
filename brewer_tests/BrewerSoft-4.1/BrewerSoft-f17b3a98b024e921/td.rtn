@@ -1,0 +1,27 @@
+10000 REM ************ td.rtn 10/03/2014 09:40:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM           MKII/MKIII/MKIV This Routine
+10002 REM
+10003 REM gets TRUE time from PC clock by going to RIGHT!! dos shell and back
+10004 REM julian groebner 26 11 97 julian
+10004 REM volodya added the date check and the comments into the b-file 05/09/2010
+55555 REM Volodya added setting the new electronics Brewer internal clock to the correct date and time 01/08/2011
+55555 REM Volodya modified the SB Brewer date/time setting to take into account the problem in the firmware that doesn't accept leading zero(s) in day (i.e. 069 ) 10/03/2014
+10004 REM ***************************************************************
+10005 DATA td
+10080 PRINT#4,"Getting date/time from PC clock..."
+10120 TC$=DA$+"/"+MO$+"/"+YE$
+10150 shell("setdate.exe")
+10290 TC=TIMER
+10300 shell("cmd /C")
+10310 TC=int((TIMER-TC)*10)/10.0
+10320 GOSUB 5300: T0=TIMER/60: GOSUB 8600
+10321 JDD$=JD$: IF VAL(JD$) <100 THEN JDD$=RIGHT$(JD$,2)
+10322 IF VAL(JD$) <10 THEN JDD$=RIGHT$(JD$,1)
+10323 IF Q14%=1 THEN O1$="!TIME 20"+YE$+", "+JDD$+", "+STR$(H%)+", "+STR$(M%)+", "+STR$(S%): GOSUB 9400
+10325 IF TC$ <> DA$+"/"+MO$+"/"+YE$ THEN B$="Date changed from "+TC$+" to "+DA$+"/"+MO$+"/"+YE$: GOSUB 3050: PRINT#4, B$:B$="Time correction "+str$(tc)+" seconds": GOSUB 3050: PRINT#4, B$
+10326 GOSUB 6200:IF TC$ <> DA$+"/"+MO$+"/"+YE$ THEN C$="pf":GOSUB 2900: C$="pd":GOSUB 2900
+10330 C$="td": B$="Time correction "+str$(tc)+" seconds": GOSUB 3050: PRINT#4, B$
+10340 IF TC$ <> DA$+"/"+MO$+"/"+YE$ THEN B$="Date changed from "+TC$+" to "+DA$+"/"+MO$+"/"+YE$: GOSUB 3050: PRINT#4, B$
+10350 RETURN
+65529 REM *** proper last line ***

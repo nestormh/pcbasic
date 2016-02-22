@@ -1,0 +1,95 @@
+10000 REM ************ sc.rtn 22/04/2014 18:00:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM             MKII/MKIII/MKIV O3 Direct Sun Scan Test
+55555 REM
+55555 REM
+55555 REM ***************************************************************
+55555 REM  06/07/12 SC will quit if intensity check sets M5$ to 0 and counts are lower than 500/cy
+10005 IF MDD$="o3" THEN 12000
+10006 PRINT#4,"SC is not an NO2 routine": PRINT"SC is not an NO2 routine"
+10007 FOR I=1 to 2000:NEXT:RETURN
+12000 '
+55555 ' *** Setup for Direct Sun Observation ***
+12000 '
+12000 DATA sc
+12020 TR$="d"+"s": scquit=0
+12022 if nds = 0 and nzs > 0 then print#4, "SC: sun scan is not done unless there is at least one good ds. Quitting.": return
+55555 '  message
+12030 UC%=0:GOSUB 9670 
+55555  '  take brewer temp
+12040 GOSUB 2450
+12050 VAR8$=M8$:VAR1$=STR$(TE%)
+12060 GOSUB 6610:GOSUB 6630:M5$=SQ$:GOSUB 6650
+12070 GOSUB 7750:GOSUB 6690:TI=TIMER*60:TD=TI+1500
+12080 LOCATE ,SP:PRINT "4 - Point Brewer at sun":GOSUB 9650
+55555 REM  'Wait until ready, test intensity and quit if too low
+12090 GOSUB 7750:GOSUB 7500:SQ$=M5$:IF FS<500 AND VAL(M5$)=0 THEN BC%=12: B$="SC intensity too low ("+STR$(FS)+"/cy), skipping.":GOSUB 3050:PRINT#4,B$:RETURN
+12092 if za > 75 then print#4, "SC: sun scan is not done for ZA>75. Quitting.": return
+55555 '
+55555 ' *** User Input/Default Settings ***
+55555 '
+13010 DIM A(30,2),B(3,5),C%(30,1):MN=0:MU=0
+13020 GOSUB 3220:WL$="0":WU$="6":M8$="-"+MC$:GOSUB 9805
+13030 PRINT CL$
+13040 LOCATE 6,SP+3:PRINT "Enter min step# ";VAL(MC$)-14;
+13050 IF RM%=1 THEN W1=VAL(MC$)-14:GOTO 13080
+13060   GOSUB 21000:IF RET=1 THEN W1=VAL(MC$)-14:GOTO 13080
+13070   GOSUB 2000:W1=VB
+13080 LOCATE 6,SP+3:PRINT "Enter max step# ";VAL(MC$)+14;
+13090 IF RM%=1 THEN W2=VAL(MC$)+14:GOTO 13120
+13100   GOSUB 21000:IF RET=1 THEN W2=VAL(MC$)+14:GOTO 13120
+13110   GOSUB 2000:W2=VB
+13120 LOCATE 6,SP+3:PRINT "Enter step increment ";2;
+13130 IF RM%=1 THEN DW=2:GOTO 14000
+13140   GOSUB 21000:IF RET=1 THEN DW=2:GOTO 14000
+13150   GOSUB 2000:DW=VB
+14000 '
+55555 ' *** Proceed with Measurement ***
+14000 '
+14000 PRINT:PRINT#4,"Scanning test from micrometer step#";W1;"to";W2
+14015 B$="start"+" "+str$(w1)+str$(w2)+str$(dw)+" "+da$+" "+mo$+" "+ye$: gosub 3050
+55555  '  scan forward
+14020 CZ$="10":GOSUB 20000
+14030 IF HF%<>0 or scquit=1 THEN 14050
+55555  '  scan backward
+14040   DW=-DW:VB=W1:W1=W2:W2=VB:GOSUB 20000
+14050 M8$=MC$:GOSUB 9805
+14060 B$="end "+VAR1$+" -999 -999 -999 -999 -999 -999 -999": GOSUB 3050
+14070 ON ERROR GOTO 3100:ERASE A,B,C%
+14080 RETURN
+20000 '
+55555 ' *** Scan Micrometer ***
+20000 '
+20000 M8$=STR$(W1):LOCATE 6,SP:PRINT "Setting micrometer to step ";M8$;"  "
+20020 GOSUB 9805:GOSUB 9710
+20030 FOR MJ=W1+DW TO W2 STEP DW
+20040   M8$=STR$(MJ):GOSUB 3220:GOSUB 9900
+20050   LOCATE 6,SP:PRINT "   Measuring at step number ";M8$;"  ":GOSUB 9805
+20060   GOSUB 9710
+20070   PRINT#4,"step#";MJ-DW:GOSUB 2090:gosub 4400:GOSUB 8200:GOSUB 20200:IF HF%<>0 THEN RETURN
+55555     'Terminate measurement
+20072   IF F(6)>4000000 THEN print#4, "SC: counts too high. Quitting.": scquit=1: RETURN
+20080 NEXT
+20090 GOSUB 9900:LOCATE 7+14,1:PRINT#4,"step# ";W2:gosub 4400:GOSUB 8200:GOSUB 20200:RETURN
+20200 LOCATE 7+ABS(MJ-VAL(MC$)-DW+14)/2,1:MN=MN+1:C%(MN,0)=MJ-DW:A(MN,0)=MS(11):A(MN,1)=MS(10):MU=MU+M2
+20210 PRINT MJ-DW,MS(11),MS(10),MN,M2
+20215 LOCATE 7+ABS(MJ-VAL(MC$)+14-DW)/2+DW/2,1:PRINT SPACE$(75):RETURN
+21000 '
+55555 ' *** Wait for Return or Backspace ***
+55555 '
+21010 A$=INKEY$:IF A$="" THEN 21010
+21020 IF ASC(A$)=13 THEN RET=1
+21030 RETURN
+22000 '
+55555 ' *** Printer Positioning ***
+22000 '
+22000 IF FLAG THEN RETURN
+22020 IF P%=0 THEN LL%=6 ELSE LL%=25
+22030 FOR ROW=1 TO LL%
+22040   FOR COL=1 TO 80
+22050     CHAR=SCREEN(ROW,COL):PRINT#2,CHR$(CHAR);
+22060 NEXT:PRINT#2,
+22070 NEXT
+22080 RETURN
+55555 '
+65529 REM proper last line

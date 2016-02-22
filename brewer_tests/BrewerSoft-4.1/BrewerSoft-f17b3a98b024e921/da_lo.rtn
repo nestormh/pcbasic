@@ -1,0 +1,37 @@
+10000 REM ************ da_lo.rtn 28/03/2011 16:01:18 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM          MKII/MKIII/MKIV Get Date and Location Routine
+10002 REM JUN 28/02  Fix MO$ for single board brewers - A. Maione.
+10003 REM
+10004 REM **************************************************************
+10005 DATA da_lo
+10010 REM this routine gets date and location parameters from op_st.fil
+10020 LD%=0:ZA%=0:T0%=0
+11410 R%=2:VA=0:GOSUB 12000:REM set location
+11420 IF Q14%=0 OR Q6%=0 THEN 11800
+11430   O1$="?TIME":GOSUB 9450:REM get date from Brewer
+11440   I=INSTR(I$,","):IF I>0 THEN X=VAL(LEFT$(I$,I-1))
+11450   YE$=MID$(STR$(X),4):YE%=VAL(YE$):GOSUB 5600 'LY%
+11460   X=VAL(MID$(I$,I+1,5)):MO$="01":DA=X
+11470   IF X>31 THEN MO$="02":DA=X-31
+11480   IF X>59+LY% THEN MO$="03":DA=X-59-LY%
+11490   IF X>90+LY% THEN MO$="04":DA=X-90-LY%
+11500   IF X>120+LY% THEN MO$="05":DA=X-120-LY%
+11510   IF X>151+LY% THEN MO$="06":DA=X-151-LY%
+11520   IF X>181+LY% THEN MO$="07":DA=X-181-LY%
+11530   IF X>212+LY% THEN MO$="08":DA=X-212-LY%
+11540   IF X>243+LY% THEN MO$="09":DA=X-243-LY%
+11550   IF X>273+LY% THEN MO$="10":DA=X-273-LY%
+11560   IF X>304+LY% THEN MO$="11":DA=X-304-LY%
+11570   IF X>334+LY% THEN MO$="12":DA=X-334-LY%
+11580   DA$=MID$(STR$(DA),2)
+11800 GOSUB 6200:IO=0:REM set date
+11810 :
+11820 RETURN
+11999 :
+12000 REM -12399 input location
+12310 LB$=LO$+LF$+CR$+" Lat = "+L1$+"; Long = "+L2$+"; Pressure = "+L3$
+12315 PZ$=L3$:IF R%<>2 THEN PRINT#4,"Obs made at ";LB$
+12320 LA=VAL(L1$):LO=VAL(L2$):PZ%=VAL(L3$):LC$=LO$
+12330 RETURN 
+65529 REM **** proper last line ****

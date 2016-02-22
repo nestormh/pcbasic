@@ -1,0 +1,20 @@
+10000 REM ************ ve.rtn 23/04/2014 11:10:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM           MKII/MKIII/MKIV This Routine
+55555 REM
+55555 REM resets micrometer motor velocity to old electronics speed
+55555 REM ***************************************************************
+10005 DATA ve
+10300 IF Q14%<>1 THEN RETURN: ' SB Electronics Only
+10320 O1$="!MOTOR.MAX.VEL[10] 16": GOSUB 9400
+10330 O1$="!MOTOR.SLOW.VEL[10] 16": GOSUB 9400
+10340 O1$="!MOTOR.MAX.ACC[10] 1600": GOSUB 9400
+10350 IF TYP$<>"mkiii" THEN 10400
+10360 O1$="!MOTOR.MAX.VEL[9] 16": GOSUB 9400
+10370 O1$="!MOTOR.SLOW.VEL[9] 16": GOSUB 9400
+10380 O1$="!MOTOR.MAX.ACC[9] 1600": GOSUB 9400
+10400 B$="Changed micrometer velocities to 16":Print#4, B$: GOSUB 3050
+10410 B$="Changed micrometer accelerations to 1600":Print#4, B$: GOSUB 3050
+10500 RETURN
+55555 '
+65529 REM *** proper last line ***

@@ -1,0 +1,119 @@
+10000 REM ************ hvb.rtn 26/10/2014 15:00:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM        MKII/MKIII/MKIV Measure The High Voltage Curve
+55555 REM
+55555 REM            (SCI-TEC Instruments, September 1998)
+55555 REM					Volodya Savastiouk 2014
+55555 REM
+55555 REM *************************************************************
+55555 REM
+55555 REM  This routine measures the high voltage curve and records
+55555 REM  the results to the file HVdddyy.###.
+55555 REM
+55555 REM  Side Effects:
+55555 REM
+55555 REM  Global Variables Referenced:
+55555 REM    SP  TD
+55555 REM    CZ$ M5$ NO$ O1$ WL$ WU$ YF$
+55555 REM    HF%
+55555 REM
+55555 REM  Exits: 14020
+55555 REM
+55555 REM  Uses: 6610, 6635, 6650, 6690, 6900, 7000, 8300, 9450,
+55555 REM        9650, 9700, 9840, 9860, 9900
+55555 REM
+55555 REM *************************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  19/07/14 - Modified HV.RTN to use UP control button instead of ENTER to confirm next voltage
+55555 REM  29/11/96 - Supports autoadjust of new firmware
+55555 REM  15/02/95 - Original release, 15/03/95 FW2 setup to inst. setting
+55555 REM *************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA hv
+11020 PRINT CL$;"Measure Voltage at HV Input":IF Q14%=1 THEN GOSUB 21000
+11030 IF M9$<>"2" THEN GOSUB 9820   'Standard Lamp
+11040 LOCATE ,SP:PRINT "Enter photomultiplier serial number: ";:GOSUB 2000:SN$=B$
+11050 LOCATE ,SP:PRINT "Enter preamp voltage level: ";:GOSUB 2000:PV$=B$
+11060 LOCATE ,SP:PRINT "Enter min voltage ";:GOSUB 2000:VL=VAL(B$)
+11070 LOCATE ,SP:PRINT "Enter max voltage ";:GOSUB 2000:VU=VAL(B$)
+11080 LOCATE ,SP:PRINT "Enter increment   ";:GOSUB 2000:VD=VAL(B$)
+12000 '
+12001 ' *** Brewer Setup ***
+12002 '
+12010 PRINT CL$:GOSUB 6610:GOSUB 6630   'Filter#1 to 1
+12020 M5$=MID$(STR$(POFW2),2):GOSUB 6650        'Filter#2 to 0
+12030 GOSUB 9860:GOSUB 6700:TD=1500:GOSUB 7000 'Iris open
+12040 LOCATE ,SP:PRINT "4 - Rotate director prism to lamps":GOSUB 9650
+12050 T0=TA/3600:GOSUB 8600  'ENTER when ready
+12060 PRINT CL$:LOCATE ,SP:PRINT"Waiting until ";H$;" for lamp warmup":GOSUB 6900
+12070 IF LO%=1 THEN 14000       'End if Lamp is Off
+12075 O1$="HVADJUST -100":GOSUB 9450:X=5:GOSUB 7220:PRINT "."
+12080 GOSUB 6800:IF HF%<>0 THEN 14000    'End if Aborted
+12090 GOSUB 2450            'Get Temperature
+13000 '
+13001 ' *** Take Set of Observations ***
+13002 '
+13010 CLS:PRINT CL$:GOSUB 9670
+13020 CLOSE 8:OPEN DD$+"hv"+JD$+YF$+"."+NO$ FOR OUTPUT AS 8
+13030 B$="High Voltage Adjustment Test - Brewer #"+NO$+" - "+DC$+" ("+JD$+")"
+13040 PRINT#4,B$:PRINT#4,:PRINT#8,B$:PRINT#8,
+13050 B$="Photomultiplier S/N "+SN$:B$=LEFT$(B$+SP$,30)+"Preamp voltage level:"+PV$
+13060 PRINT#4,B$:PRINT#4,:PRINT#8,B$:PRINT#8,
+13070 B$="Control voltage   Dark Count   Wavelength 1      Change    Ratio":IF Q14%=1 THEN B$=B$+"   Actual voltage"
+13080 PRINT#4,B$:PRINT#4,:PRINT#8,B$:PRINT#8,
+13090 : O1$="M,3,"+STR$(INT(IRIS/2)):GOSUB 9450: GOSUB 20000
+13100 CLOSE 8
+14000 '
+14001 ' *** Clean Up and Exit ***
+14002 IF Q14%=0 THEN 14010
+14003 O1$="HVADJUST -100":GOSUB 9450:F(0)=0:X=5:GOSUB 7220:PRINT "."
+14005 I=(VAL(VP$)-VAL(VL$))*90/(VAL(VU$)-VAL(VL$)):O1$="HVADJUST "+STR$(INT(I-F(0))):F(0)=I:GOSUB 9450
+14010 GOSUB 9840
+14020 RETURN
+20000 '
+20001 ' *** Filterwheel #2 Observation ***
+20002 '
+20010 CZ$="5":WL$="1":WU$="2":F(0)=0:GOSUB 9880
+20020 FOR VI=VL TO VU STEP VD
+20025   IF VL=VI THEN F2 = 0 ELSE F2 = F(2)
+20030   IF Q14%=1 THEN 20100
+20040   PRINT CL$:LOCATE ,SP:PRINT "Set to ";VI;" volts"
+20043    GOSUB 20500
+20045    IF (Q14%=0 AND (VA AND 64)=64) OR (Q14%=1 AND (VA AND 4)=4) THEN GOTO 20050 ELSE GOTO 20043
+20050   O1$="M,3,"+STR$(IRIS):GOSUB 9450: GOSUB 9700:GOSUB 9900:IF HF%<>0 THEN PRINT "Aborted":PRINT#4,"Aborted":VI=VU:GOTO 20200
+20060   IF F(1)>0 THEN J=F(2)/SQR(F(1)) ELSE J=0
+20070   PRINT#4,USING "  #######           ####         #######   #######     #######";VI;F(1);F(2);F(2)-F2;J
+20080   PRINT#8,USING "  #######           ####         #######   #######     #######";VI;F(1);F(2);F(2)-F2;J
+20090   O1$="M,3,"+STR$(INT(IRIS/2)):GOSUB 9450: GOTO 20200
+20100   LOCATE ,SP:PRINT "Setting to ";VI;" volts"
+20110   I=(VI-VAL(VL$))*90/(VAL(VU$)-VAL(VL$)):O1$="HVADJUST "+STR$(INT(I-F(0))):F(0)=I:GOSUB 9450
+20120   X=2:GOSUB 7220:GOSUB 9700:GOSUB 9900
+20130   O1$="?ANALOG.NOW[3]":GOSUB 9450:IF HF%<>0 THEN PRINT "Aborted":PRINT#4,"Aborted":VI=VU:GOTO 20200
+20140   VA=VA*2.0043+9.653:IF F(1)>0 THEN J=F(2)/SQR(F(1)) ELSE J=0
+20150   PRINT#4,USING "  #######           ####         #######   #######     #######    #######.#";VI;F(1);F(2);F(2)-F2;J;VA
+20160   PRINT#8,USING "  #######           ####         #######   #######     #######    #######.#";VI;F(1);F(2);F(2)-F2;J;VA
+20200 NEXT:PRINT#8,:GOSUB 9840:RETURN
+20500 '
+20501 ' *** Read Push Buttons ***
+20502 '
+20505 IF IS%=42 THEN GOSUB 9550:GOTO 20505
+20515 O1$=":G,800":IF Q14%=1 THEN O1$="?TRACKER.SWITCHES"
+20540 GOSUB 9400:IF HF%=1 AND A$="" THEN A$=INKEY$
+20550 RETURN
+21000 '
+21001 ' *** New Electronics Board Setup ***
+21002 '
+21010 '
+21020 LOCATE ,SP:PRINT "Please wait... testing range"
+21025 O1$="?ANALOG.NOW[3]":GOSUB 9450:VP$=MID$(STR$(VA*2.0043+9.653),2)
+21030 O1$="HVADJUST -100":GOSUB 9450:X=5:GOSUB 7220:PRINT ".";
+21040 O1$="?ANALOG.NOW[3]":GOSUB 9450:VL$=MID$(STR$(VA*2.0043+9.653),2)
+21050 O1$="HVADJUST 90":GOSUB 9450:X=5:GOSUB 7220:PRINT "."
+21060 O1$="?ANALOG.NOW[3]":GOSUB 9450:VU$=MID$(STR$(VA*2.0043+9.653),2)
+21070 O1$="HVADJUST -100":GOSUB 9450:X=5:GOSUB 7220:PRINT "."
+21075 O1$="HVADJUST 60":GOSUB 9450:X=5:GOSUB 7220:PRINT "."
+21080 PRINT CL$;"Measure Voltage at HV Input (";VL$;" to ";VU$;")"
+21090 RETURN
+65529 REM proper last line

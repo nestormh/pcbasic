@@ -1,0 +1,85 @@
+10000 REM ************ sd.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM            solar image diameter on the entrance slit scan
+10020 REM
+10030 REM            (ARQX/EC/IOS June 2008)
+10040 REM
+10060 REM *************************************************************
+10070 REM
+10080 REM  Direct sun scan
+10090 REM
+10220 REM  Global Variables Referenced:
+10230 REM    MS() DS% HF% UC% ND TD XN
+10240 REM    CL$ CY$ CZ$ M5$ MDD$ SQ$ TR$ TYP$ ZS$
+10250 REM
+10260 REM  Exits: 13020
+10270 REM
+10280 REM  Uses:  2450, 3200, 3220, 4200, 6610, 6630, 6636, 6650,
+10290 REM         6690, 7000, 7500, 7750, 8000, 8200, 9650, 9670,
+10300 REM         9700, 9900
+10310 REM
+10500 REM **************************************************************
+10501 REM  History: dd/mm/yy
+10540 REM  09/06/08 - created by Volodya
+10550 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA sd
+11020 TR$="d"+"s":UC%=0
+11030 if MDD$<>"o3" THEN print#4, "SD is not a NO2 routine. Quiting.": return
+11050 GOSUB 6610: GOSUB 6635:    'Filter#1 to 3 - opening
+11055 if NO$="020" then gosub 6637:'FW1 to pos 5 (NDF) for #020
+11060 M5$="320": ' maximum attenuation
+11065 GOSUB 6650                    'Filter#2 to M5$
+11070 GOSUB 6690:GOSUB 7750                 'Iris closed, AZ/ZE to sun
+11080 LOCATE ,SP:PRINT "4 - Point Brewer at sun"
+11090 GOSUB 9650:GOSUB 7500          'Wait until ready, test intensity, not know, but later
+12000 '
+12001 ' *** Take Set of Observations ***
+12002 '
+12070 B$=JD$+YF$+"."+NO$
+12075 OPEN DD$ + "sd"+B$ FOR APPEND AS 8  ' open file for output
+12080 print #8,"Sun image on the entrance slit scan started at ";TIME$; "filter:";STR$(VAL(M5$)/64);
+12084 print "Sun image on the entrance slit scan started at ";TIME$; "filter:";STR$(VAL(M5$)/64)
+12085 print #4,"Sun image on the entrance slit scan started at ";TIME$; "filter:";STR$(VAL(M5$)/64)
+12090 CZ$="2":WL$="6":WU$="6":GOSUB 9880:PRINT #8, "CY ";CZ$;"SL ";VAL(WL$)-1
+12095 GOSUB 2450 ' get temp
+12109 GOSUB 9670:REM prints start of measurement
+12115 IF HF%<>0 THEN 13000
+12120 track=1:nju=0:FOR JU=-1.0/360*sr% to 1.0/360*SR% STEP 3:REM scan.
+12125  nju=nju+1:GOSUB 20000
+12130 NEXT JU
+12132 'GOSUB 30000
+12134 PRINT #4,"Azimuth from FV.rtn at steps and Intens:";I;" ";MAZ
+12137 PRINT#4,"Old Azimuth correction:";NC%;" New would be ";NC%+I
+12238 REM IF ABS(I)>4 AND MAZ>20000 THEN NC%=NC%+I:PRINT #4,"New Azimuth NC%:";NC%
+12140 A1$(IO)=LF$+"fv"+CR$+TIME$+CR$+M5$+CR$+"az"+CR$+STR$(AZ)+CR$+STR$(I)+CR$+STR$(MAZ)
+12145 GOSUB 8000:REM clear MS, S
+13000 '
+13001 ' *** Clean Up and Exit ***
+13010 GOSUB 3200:IO=IO+1
+13050 IF HF%<>0 THEN PRINT "Scan aborted" else PRINT "Scan Finished"
+13080 GOSUB 7800:GOSUB 7950 ' restore pointing to sun.
+13090 CLOSE 8
+13100 RETURN
+20000 '
+20001 ' *** Direct Sun Scan ***
+20002 '
+20010 GOSUB 7800    ' get new AZ% and ZE%
+20015 corraz=cos(ZA*3.1415926/180):REM correct for spherical movement
+20016 corrze=sin(ZA*3.1415926/180):REM correct for spherical movement
+20017 if corraz=0 THEN corraz=1
+20018 if corrze=0 THEN corraz=1
+20020 AZC%=AZC%+(JU*corraz) 'steps.
+20030 ZEC%=ZEC%-(JU*corrze) 'steps
+20040 GOSUB 7950   ' move motors to updated position, while tracking sun
+20050 O1$="R,"+WL$+","+WU$+","+CZ$:GOSUB 9400
+20060 WT=(WU-WL+1)*VAL(CZ$)*18/7*IT
+20070 T0=TIMER*60+WT/120
+20080 TI=TIMER*60:TS=TI/7200:TD=200+WT*60:GOSUB 7000
+20090 GOSUB 9900  ' get data when ready data in F(WL)
+20100 PRINT #8,USING"####.###   ";ju/SR%*360;JU;AZC%;ZEC%;AZ;ZA;:PRINT #8,F(WL)/val(CZ$)
+20110 PRINT USING"####.###   ";ju/SR%*360;JU;AZC%;ZEC%;AZ;ZA;:PRINT F(WL)/val(CZ$)
+20120 RETURN
+65529 REM *** dummy line ***

@@ -1,0 +1,71 @@
+10000 REM ************ newinst.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM             MKII/MKIII/MKIV Create New Instrument
+10020 REM
+10030 REM              (Sci-Tec Instruments, July 1995)
+10040 REM
+10050 REM     *** THIS IS NOT A ROUTINE TO BE GIVEN TO CUSTOMERS ***
+10040 REM
+10050 REM  See Also:
+10060 REM **************************************************************
+10070 REM
+10080 REM  This routine changes the current instrument number, and
+10090 REM  copies the data from the old instrument number.  If the new
+10100 REM  instrument number already exists, the copying is NOT done.
+10110 REM
+10120 REM  Side Effects:
+10130 REM
+10140 REM  Global Variables Used:
+10150 REM    IO SP
+10160 REM    DCF$ DD$ DL$ ICF$ O1$ NO$ ZSF$
+10170 REM
+10180 REM  Exits: 11050
+10190 REM
+10200 REM  Uses:  2030, 2550, 3100, 4450, 5200, 5300, 5400, 9450
+10210 REM
+10300 REM **************************************************************
+10310 REM  History: dd/mm/yy
+10320 REM  14/07/95 - New routine, derived from old NO.RTN routine
+10330 REM **************************************************************
+10500 '
+10501 ' *** Setup ***
+10502 '
+10510 DATA newinst
+10520 AB$=NO$
+11000 '
+11001 ' *** Prompt for Instrument Number ***
+11002 '
+11010 CLS:PRINT CL$:LOCATE 10,SP:PRINT "Instrument # = ";AB$
+11020 LOCATE ,SP:PRINT"If correct press return"
+11030 LOCATE ,SP:PRINT"If incorrect press enter the proper value (xxx) "
+11040 LOCATE ,SP+10:PRINT "->";
+11050 GOSUB 2030:IF A$=CR$ THEN GOSUB 20000:RETURN
+11060 AB$=A$:GOSUB 2050:AB$=AB$+B$:GOSUB 2550:GOTO 11000
+20000 '
+20001 ' *** Change to New Instrument Number ***
+20002 '
+20010 GOSUB 5200:REM            write out old operating state
+20020 ON ERROR GOTO 30000:REM   to handle creation of new directory
+20030 CLOSE 8:OPEN DD$+AB$+"\op_st."+AB$ FOR INPUT AS 8:CLOSE 8
+20040 NO$=AB$:ON ERROR GOTO 3100
+21000 '
+21001 ' *** Read in New Instrument Data ***
+21002 '
+21010 GOSUB 5300:REM      read in new operating state (new dir already exists by now)
+21020 I=0:GOSUB 5400:REM  read instrument constants
+21030 O1$="L,18041,"+DL$
+21040 GOSUB 9450:REM      set instrument delay
+21050 IF IO=1 THEN IO=0
+21060 GOSUB 3225:RETURN
+30000 '
+30001 ' *** Error Handler ***
+30002 '
+30010 IF ERR<>76 THEN 3100
+30020 ON ERROR GOTO 30080:PRINT "Creating instrument #";NO$;" data directory..."
+30030 SHELL "md "+DD$+AB$:PRINT "Copying ";NO$;" data files to ";AB$;"..."
+30040 SHELL "copy "+DD$+NO$+"\"+ICF$+"."+NO$+" "+DD$+AB$+"\"+ICF$+"."+AB$
+30050 SHELL "copy "+DD$+NO$+"\"+DCF$+"."+NO$+" "+DD$+AB$+"\"+DCF$+"."+AB$
+30060 SHELL "copy "+DD$+NO$+"\"+ZSF$+"."+NO$+" "+DD$+AB$+"\"+ZSF$+"."+AB$
+30070 NO$=AB$:GOSUB 5200
+30080 RESUME
+65529 REM proper last line

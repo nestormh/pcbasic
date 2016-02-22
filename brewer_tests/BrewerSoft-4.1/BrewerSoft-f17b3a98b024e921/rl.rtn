@@ -1,0 +1,62 @@
+10000 REM ************ rl.rtn 21/04/2012 11:00:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM               MKII/MKIII/MKIV Read Brewer Log
+10020 REM
+10030 REM            (SCI-TEC Instruments, September 1998)
+10040 REM
+10050 REM ************************************************************
+10070 REM
+10080 REM  This routine reads all log messages from a Brewer (new
+10090 REM  electronics only) and displays them onscreen and on the
+10100 REM  printer.
+10300 REM
+10310 REM  Global Variables Referenced:
+10320 REM    IO MU PC SP TIMER T1 ULAST VA ZA ZERO
+10330 REM    A1$() C$ CR$ DD$ DQ$ JD$ MC$ M8$ NO$ O1$ TE$
+10340 REM    TIME$ TR$ UF$ UTIME$ UVR$ YF$
+10350 REM    DN% DV% HF% MX% MZ% Q8% TE% UC% ZU%
+10360 REM
+10370 REM  Exits: 11020, 11120, 11220, 20020
+10380 REM
+10390 REM  Uses: 50,  2090,2450,3100,3900,4450,6610,6635,
+10400 REM        6650,6700,7000,7750,9190,9450,9500,9650,
+10410 REM        9800,9810,9870,response file
+10500 REM ************************************************************
+10510 REM  History: dd/mm/yy
+55555 REM Volodya added recording of the log to b-files
+10520 REM  17/09/98 - New routine created
+10530 REM ************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA rl
+11100 IF Q14%=1 THEN 12000
+11110   B$="Old Brewers have no log to read":PRINT#4,B$:PRINT B$
+11120   X=2:GOSUB 7220:RETURN
+12000 '
+12001 ' *** Setup ***
+12002 '
+12010 CLS:PRINT CL$:K=0
+12020 B$=TIME$+"  Brewer Instrument Log"
+12030 LOCATE 6,4:PRINT B$;" (Press HOME to abort)":IF FP%>0 THEN PRINT#4,B$
+12040 IF RM%=1 THEN 13000
+12050   LOCATE 8,4:PRINT "Do you want to read all log messages (Y/N) ";
+12060   GOSUB 2035:IF A$="y" OR A$="Y" THEN O1$="LOGSTART":GOSUB 9450
+13000 '
+13001 ' *** Read the Log ***
+13002 '
+13010 GOSUB 2090:IF HF%<>0 THEN 14000
+13020 O1$="LOGENTRY":GOSUB 9450:A$=R$+CHR$(0):I=INSTR(I1$,A$):A$=LEFT$(I1$,I-1)
+13030 K=K+1:IF K>=16 THEN K=0
+13040 LOCATE 9+K,1:PRINT LEFT$(A$,78):B$=A$:GOSUB 3050:IF FP%>0 THEN PRINT#4,B$
+13050 LOCATE 10+K,1:A$="             ":PRINT A$;A$;A$;A$;A$;A$
+13060 IF INSTR(I$,"All log items reported.")=0 THEN 13000
+13090 O1$="!BYTE.X[33693] 0":GOSUB 9450: ' Force log to zero (clear)
+14000 '
+14001 ' *** Clean Up ***
+14002 '
+14010 IF RM%=1 THEN X=2:GOSUB 7220:RETURN
+14020 A$=INKEY$:IF A$<>"" THEN 14020
+14030 A$=INKEY$:IF A$="" THEN 14030
+14040 RETURN
+65529 REM proper last line

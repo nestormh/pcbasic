@@ -1,0 +1,6 @@
+10000 REM ************ auto-off.rtn 05/03/2011 19:47:08 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 data dimds-off
+20000 OPT.LOWDS=0
+30000 return
+65529 rem dummy

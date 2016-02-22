@@ -1,0 +1,167 @@
+10000 REM ************ zssum.rtn 10/05/2011 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM       MKII/MKIII/MKIV NO2 Zenith Sky Data for Current Day
+10020 REM
+10030 REM               (SCI-TEC Instruments, July 1995)
+10040 REM
+10060 REM *************************************************************
+10070 REM
+10080 REM  This routine outputs morning or evening NO2 zenith sky
+10090 REM  data for the current day.  It includes stratosphere and
+10100 REM  troposphere results.  Nothing is printed if no data is
+10110 REM  available.
+10120 REM
+10220 REM  Global Variables Referenced:
+10230 REM    NTC() NTQ() S()
+10240 REM    NA1 NB2
+10250 REM    CL$ DC$ DD$ JD$ L1$ L2$ LO$ NO$ TY$ TYP$ YF$
+10260 REM
+10270 REM  Exits: 11050, 12210, 15020, 30040, 31010
+10280 REM
+10290 REM  Uses:  3100, 5400, 7220, 9650
+10300 REM
+10500 REM **************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  21/07/95 - Fixed calculation bug; added data rejection
+10530 REM  12/01/95 - Now uses B file for data, no TC -> don't correct
+10540 REM  19/12/94 - Removed MDD$ references
+10550 REM  22/11/94 - Created by TM
+10560 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA zssum
+11020 IF TYP$="mkiv" THEN 11100
+11030   PRINT#4,"ZSSUM works on a MKIV Brewer only"
+11040   PRINT   "ZSSUM works on a MKIV Brewer only"
+11050   X=1:GOSUB 7220:RETURN
+11100 I=1:GOSUB 5400:REM temp coeffs
+11120 TOBS=0:REM  total observations
+12000 '
+12001 ' *** Open Brewer Data File and Print Header for Summary ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12030 ON ERROR GOTO 31000
+12040 IF EOF(8) THEN 12200
+12050   INPUT#8,A$:IF A$="n2zs" THEN 12500
+12060   GOTO 12040
+12200 PRINT "No NO2 zenith sky data available for this day.":X=1:GOSUB 7220
+12210 ON ERROR GOTO 3100:CLOSE 8:RETURN
+12500 CLOSE 8:OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12520 PRINT#4,"Summary of Brewer NO2 zenith sky measurements for ";DC$;" (";JD$;")"
+12530 PRINT#4,:PRINT#4,"Measurements made at ";LO$;" with instrument # ";NO$
+12540 PRINT#4,USING "     Latitude            = \        \     Longitude           = \        \";L1$;L2$
+12550 PRINT#4,"     Zenith ETC          = ";NB2
+12560 PRINT#4,
+13000 '
+13001 ' *** Process Zenith Sky NO2 Summary Data ***
+13002 '
+13010 FOR I=0 TO 15:S(I)=0:NEXT:T%=0
+13020 PZ=100:REM zenith angle from previous summary data read
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$:IF A$="inst" THEN GOSUB 25000
+13120   IF A$<>"n2summary" THEN 13100
+13130   INPUT#8,H$,A$,A$,A$,ZA,MU,TQ,TY$,FL$
+13140   IF TQ=-30 OR TY$<>"n2zs" THEN 13100
+13150   INPUT#8,A$,A$,A$,A$,R5,R6,FV,NO
+13160   INPUT#8,A$,A$,A$,A$,A$,A$,EF,EN: if ef=0 then 13100
+13170   TOBS=TOBS+1:FV=FV+T%*TQ*(NTQ(1)-NTC(1))         'correct F value based on temp.coeffs
+13180   NO=(FV-NB2)/NA1/MU/10               'update NO value
+13190   GOSUB 20000:REM add new summary to calculation
+13200   GOTO 13100
+14000 '
+14001 ' *** Close Brewer File and Print Out Summary Data ***
+14002 '
+14010 CLOSE 8:I=0
+14020 IF S(0)>4 THEN I=I+S(0):Z%=0:GOSUB 22000:GOSUB 23000
+14030 IF S(8)>4 THEN I=I+S(8):Z%=8:GOSUB 22000:GOSUB 23000
+14040 IF S(0)>4 OR S(8)>4 THEN PRINT#4,USING "     ##  observations.";I:GOTO 15000
+14100 PRINT#4,
+14110 PRINT#4,"***      Insufficient data to calculate      ***"
+14120 PRINT#4,"***  statistics for this day's observations. ***"
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 ON ERROR GOTO 3100
+15020 RETURN
+20000 '
+20001 ' *** Test Observation for Proper Zenith Angle Range ***
+20002 '
+20010 IF ZA<PZ THEN Z%=0 ELSE Z%=8:REM         increasing ZA -> sun setting
+20020 PZ=ZA:IF EN>0.2 THEN RETURN:REM          data rejection
+20030 IF ZA>96.5 OR ZA<84.5 THEN RETURN:REM    test for proper angle
+21000 '
+21001 ' *** Include Observation in Calculations ***
+21002 '
+21010 X=ZA-90
+21100 REM
+21101 REM Calculate X1,X2 based on angle to horizontal (X) and F std.dev (ES)
+21102 REM
+21110 X1=4.95-.727*X-.158*X*X+.0463*X^3+.008148*X^4-.001866*X^5
+21120 X1=(X1-.0001573*X^6+3.099E-05*X^7)/EF
+21130 X2=18.51+3.283*X+.4044*X*X+.02786*X^3-.01767*X^4-.004951*X^5
+21140 X2=(X2+.0001888*X^6+9.583E-05*X^7)/EF
+21200 REM
+21201 REM Calculate Y based on F (FV), F std.dev (EV), and NB2
+21202 REM 
+21210 Y=(FV-NB2)/EF
+21300 REM
+21301 REM Calculate sums
+21302 REM
+21310 S(1+Z%)=S(1+Z%)+X1*Y:S(2+Z%)=S(2+Z%)+X1*X1:S(3+Z%)=S(3+Z%)+X1*X2
+21320 S(4+Z%)=S(4+Z%)+X2*Y:S(5+Z%)=S(5+Z%)+X2*X1:S(6+Z%)=S(6+Z%)+X2*X2
+21330 S(7+Z%)=S(7+Z%)+Y*Y:S(Z%)=S(Z%)+1
+21340 RETURN
+22000 '
+22001 ' *** Print Daily Mean Values for Specified Type ***
+22002 '
+22010 X=S(Z%+6)*S(Z%+2)-S(Z%+3)*S(Z%+5):IF X>0 THEN X=(S(Z%+6)*S(Z%+1)-S(Z%+3)*S(Z%+4))/X
+22020 Y=(S(Z%+1)-S(Z%+2)*X)/S(Z%+3)
+22030 E=S(Z%+7)+X*X*S(Z%+2)+Y*Y*S(Z%+6)+2*X*Y*S(Z%+3)-2*X*S(Z%+1)-2*Y*S(Z%+4)
+22040 E=SQR(E/(S(Z%)-2)):X=X/NA1/10:Y=Y/NA1/10
+22050 XX=S(Z%+2)*S(Z%+6)-S(Z%+3)^2
+22060 E1=E*SQR(S(Z%+6)/XX)/ABS(NA1)/10
+22070 E2=E*SQR(S(Z%+2)/XX)/ABS(NA1)/10
+22080 IF Z%=0 THEN PRINT#4,"MOR"; ELSE PRINT#4,"EVE";
+22090 PRINT#4,USING "  ##  TOTAL NO2:  STRAT = ###.### +/- ###.###  TROP = ###.### +/- ###.###";S(Z%);Y;E2;X;E1
+22100 RETURN
+23000 '
+23001 ' *** Add Daily Mean Values to Average File ***
+23002 '
+23010 ON ERROR GOTO 32000
+23020 AVGFILE$="ZSNAVG"
+23030 A$="MOR":IF Z%=8 THEN A$="EVE"
+23100 CLOSE 6:OPEN DD$+AVGFILE$+"."+NO$ FOR APPEND AS #6
+23110   REM  Type  Obs  Tobs  Strat  +/-Strat  Trop  +/-Trop
+23120   PRINT#6,JD$;YF$;" ";A$;
+23130   PRINT#6,USING "  ##  ##  ###.###  ###.###   ###.###  ###.###";S(Z%);TOBS;Y;E2;X;E1
+23140 CLOSE 6
+23200 ON ERROR GOTO 31000
+23210 RETURN
+25000 '
+25001 ' *** Reads in Temperature Coefficients when Data was Recorded ***
+25002 '
+25010 FOR I=2 TO 6:INPUT#8,TQ(I):NEXT:FOR I=1 TO 19:INPUT#8,A$:NEXT
+25020 INPUT#8,TQ(7),NTQ(7):FOR I=2 TO 6:INPUT#8,NTQ(I):NEXT
+25030 TQ(0)=TQ(2)-TQ(5)-3.2*(TQ(5)-TQ(6))
+25040 TQ(1)=TQ(3)-TQ(5)-.5*(TQ(4)-TQ(5))-1.7*(TQ(5)-TQ(6))
+25050 NTQ(1)=.1*NTQ(2)-.59*NTQ(3)+.11*NTQ(4)+1.2*NTQ(5)-.82*NTQ(6)
+25060 T%=1:RETURN
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No Brewer (B) file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220
+30040 ON ERROR GOTO 3100:CLOSE 8:RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 GOTO 3100
+32000 '
+32001 ' *** Error Handler for Average File ***
+32002 '
+32010 IF ERR=53 AND ERL=23050 THEN RESUME 23100
+32020 GOTO 31000
+65529 REM proper last line

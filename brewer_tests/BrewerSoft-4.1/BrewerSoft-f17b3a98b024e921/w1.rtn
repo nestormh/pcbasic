@@ -1,0 +1,25 @@
+10000 REM ************ w1.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM                       Waits Five Minutes
+10002 REM
+10003 REM
+10004 REM **************************************************************
+10005 DATA w1
+14010 TA=TIMER*60+5*60*60:A$=""
+14013 IF (TIMER*60) < (5184000-10*60*60) THEN 14020
+14017 RETURN:REM (5 min + wait period) required before midnight 
+14020 T0=TA/60/60:GOSUB 8600
+14030 PRINT CL$:PRINT "Waiting until ";H$;" to continue schedule"
+14040 IF TA>5165900! THEN TA=TA-5166000!:GOSUB 14100
+14045 IF A$=Q1$ THEN RETURN
+14046 GOSUB 2093:IF HF%=1 THEN RETURN
+14050 IF TIMER*60<TA THEN GOSUB 9891:A$=INKEY$:GOTO 14045
+14055 T0=TIMER/60
+14060 RETURN
+14100 REM wait until changeover if new day is necessary
+14105 A$=INKEY$:IF A$=Q1$ THEN RETURN
+14110 IF TIMER*60>2500000! THEN 14100 
+14120 RETURN
+14298 :
+14299 :
+65529 REM *** dummy line ***

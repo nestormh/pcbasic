@@ -1,0 +1,99 @@
+10000 REM ************ ds.rtn 06/07/2012 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM            MKII/MKIII/MKIV Direct Sun Observations
+55555 REM
+55555 REM            (initial code: SCI-TEC Instruments, September 1995)
+55555 REM
+55555 REM *************************************************************
+55555 REM
+55555 REM  Direct sun scan
+55555 REM
+55555 REM  Global Variables Referenced:
+55555 REM    MS() DS% HF% UC% ND TD XN
+55555 REM    CL$ CY$ CZ$ M5$ MDD$ SQ$ TR$ TYP$ ZS$
+55555 REM
+55555 REM  Exits: 13020
+55555 REM
+55555 REM  Uses:  2450, 3200, 3220, 4200, 6610, 6630, 6636, 6650,
+55555 REM         6690, 7000, 7500, 7750, 8000, 8200, 9650, 9670,
+55555 REM         9700, 9900
+55555 REM
+55555 REM **************************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  06/07/12 DS will quit if intensity check sets M5$ to 0 and counts are lower than 500/cy
+55555 REM  20/10/07 AOD converted from base 10 to base e
+55555 REM  15/09/05 AOD measurement added by Volodya
+55555 REM  27/09/95 - Aborts if counts are too high, fixed home key
+55555 REM  abort and temperature check
+55555 REM  20/12/94 - Rewritten by TM
+55555 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 DOAOD = 0:' 0 UNTILL successfull reading of the aodval file
+11010 DATA ds
+11020 TR$="d"+"s":UC%=0:c$="ds": gosub 16000
+11030 IF VAL(SQ$)<128 AND M2<2 THEN SQ$="128"
+11050 GOSUB 6610:IF MDD$="o3" THEN GOSUB 6630 ELSE GOSUB 6636   'Filter#1 to 1 or 4
+11060 M5$=SQ$:GOSUB 6650                    'Filter#2 to SQ$
+11070 GOSUB 6690:GOSUB 7750                 'Iris closed, AZ/ZE to sun
+11080 LOCATE ,SP:PRINT "4 - Point Brewer at sun"
+11090 GOSUB 9650:GOSUB 2450:GOSUB 7500:IF FS<500 AND VAL(M5$)=0 AND OPT.LOWDS=1 THEN BC%=12: B$="DS intensity too low ("+STR$(FS)+"/cy), skipping.":GOSUB 3050:PRINT#4,B$:RETURN          'Wait until ready, test intensity and quit if too low
+12000 '
+12001 ' *** Take Set of Observations ***
+12002 '
+12010 CZ$=CY$:GOSUB 9700
+12020 GOSUB 8000:MS(0)=11:DS%=0
+12030 SQ$=M5$
+12040 DS%=DS%+1:GOSUB 20000:IF DOAOD = 1 THEN gosub 15000
+12050 IF HF%<>0 OR DS%=5 THEN 13000
+12060 GOTO 12040
+13000 '
+13001 ' *** Clean Up and Exit ***
+13010 GOSUB 4200:GOSUB 3220
+13015 if ds%=5 and HF%=0 AND DOAOD = 1 then gosub 15500:' Calculate AOD if normal termination
+13020 RETURN
+15000 ' Calculate and save AOD
+15002 'CLOSE 8:OPEN DD$+"aod."+NO$ FOR APPEND AS 8: Print#8,jd$;yf$;" "; time$;
+15003 '
+15140 'PRINT#8,USING " ###.## ## ##### ##### ##.### ##.### ###.# ##.#";ZA;af%;af(af%);afaod(af%+1,3);m2;m3;ms(11);ms(10);
+15142 FOR I=WL TO WU
+15143 if i=1 then dsAOD(ds%,i)=0: goto 15149
+15144 dsAOD(ds%,i)=(exaod(i)-F(i)-AFAOD(af%+1,i)+af(af%)-ms(11)*10*m2*o3aod(i)-ms(10)*10*m2*s2aod(i))/m3/10*CO
+15145 'PRINT#8,USING " ##.####";dsAOD(ds%,i);: 
+15146 if dsAOD(ds%,i)<0 then dsAOD(ds%,i)=0
+15149 NEXT:
+15150 'FOR I=WL TO WU
+15160 '  IF I=1 THEN PRINT#8,USING " ####";F(I);:GOTO 15180
+15170 '  PRINT#8,USING " #######";F(I);
+15180 'NEXT:PRINT#8,
+15190 'close 8
+15200 return
+15500 '
+15501 ' Make up AOD summary
+15505 gosub 8000:ms(0)=11:for ds%=1 to 5
+15510 for i=4 to 10 : ms(i)=dsaod(ds%,i-4): next i:gosub 8760: gosub 8050 
+15520 next ds%: gosub 8100: c$="aode": gosub 4300: gosub 3225:c$="ds":CAOD = ms(9)/1000:if CAOD<MAOD AND CAOD>0 then MAOD=CAOD
+15599 return
+16000 '
+16001 ' Reading the AOD setup file
+16005 AFAOD(1,1)=0: erase AFAOD: dim AFAOD(8,6): dsAOD(1,1)=0: erase dsaod: dim dsaod(5,6)
+16010 ON ERROR GOTO 16910: open DD$+NO$+"\aodval."+no$ for input as 1
+16015 for i=1 to 6: input#1, EXAOD(i): next i
+16016 for i=1 to 6: input#1, O3AOD(i): next i
+16017 for i=1 to 6: input#1, S2AOD(i): next i
+16020 input#1, tmp, tmp: for i=1 to 6: input#1, tmp, tmp, tmp: for j=1 to 6:input#1,  AFAOD(i,j), tmp:AFAOD(1,j)=0: next j: next i
+16030 DOAOD = 1
+16900 close 1: ON ERROR GOTO 0: return
+16910 RESUME 16900
+20000 '
+20001 ' *** Direct Sun Observation ***
+20002 '
+20010 GOSUB 9670:GOSUB 9900                 'Get data when ready
+20020 IF F(6)>4000000 THEN BC%=12:B$="DS intensity too high ("+STR$(INT(F(6)/VAL(CZ$)))+"/cy) quitting.":GOSUB 3050: PRINT#4,B$: DS%=5:RETURN    'Terminate measurement
+20025 IF HF%<>0 THEN BC%=12:B$="DS aborted":GOSUB 3050: PRINT#4,B$: DS%=5:RETURN    'Terminate measurement
+20030 IF XN=1 OR DS%<5 THEN GOSUB 9700              'Take a reading
+20040 IF XN=1 THEN 20010:REM restart obs
+20050 GOSUB 4400:GOSUB 8200                 'Store and display data
+20060 GOSUB 3200                        'Output buffer if needed
+20070 ND=ND+1:RETURN 
+65529 REM *** dummy line ***

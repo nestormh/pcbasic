@@ -47,19 +47,19 @@ class AudioPlugin(object):
         # if not None, something is playing
         self.next_tone = [ None, None, None, None ]
         # start audio thread
-        self.thread = threading.Thread(target=self._consumer_thread)
-        self.thread.start()
+        # self.thread = threading.Thread(target=self._consumer_thread)
+        # self.thread.start()
 
     def close(self):
         """ Close the audio interface. """
         # drain signal queue (to allow for persistence) and request exit
-        if backend.message_queue:
-            backend.message_queue.put(backend.Event(backend.AUDIO_QUIT))
-            backend.message_queue.join()
+        # if backend.message_queue:
+        #     backend.message_queue.put(backend.Event(backend.AUDIO_QUIT))
+        #     backend.message_queue.join()
         # don't wait for tone que, it will not drain but be pickled later.
-        if self.thread and self.thread.is_alive():
+        # if self.thread and self.thread.is_alive():
             # signal quit and wait for thread to finish
-            self.thread.join()
+            # self.thread.join()
 
 
     # queue management

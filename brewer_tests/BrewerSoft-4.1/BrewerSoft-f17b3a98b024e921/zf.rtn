@@ -1,0 +1,13 @@
+10000 REM ************ zf.rtn 01/04/2011 12:00:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM     MKII/MKIII/MKIV Filter wheels 1&2 zeroing
+10002 REM
+10003 REM  
+10004 REM **************************************************************
+10005 DATA zf
+16000 '
+16001 ' *** Zeroing FW1 and FW2 Motors ***
+16002 '
+16030 O1$="M,4,0;M,5,0;M,4,320;M,5,320;M,4,0;M,5,0;M,4,320;M,5,320":GOSUB 9400:REM Go from 0 to 320 twice
+18020 RETURN
+65529 REM proper last line

@@ -193,13 +193,24 @@ def out(addr, val):
         # serial port machine ports
         # http://www.qb64.net/wiki/index.php/Port_Access_Libraries#Serial_Communication_Registers
         # http://control.com/thread/1026221083
+        print "port machine"
         for base_addr, com_port_nr in com_base.iteritems():
             com_port = com_device[com_port_nr]
+
+            print "com_port_nr", com_port_nr
+
             if com_port.stream is None:
                 continue
             # ports at base addr and the next one are used for writing baud rate
             # (among other things that aren't implemented)
+            print "addr", addr
+            print "base_addr", base_addr
             if addr in (base_addr, base_addr+1) and com_enable_baud_write[com_port_nr]:
+                print "addr", addr
+                print "base_addr", base_addr
+                print "base_addr + 1", base_addr+1
+                print "com_port_nr", com_port_nr
+
                 if addr == base_addr:
                     com_baud_divisor[com_port_nr] = (com_baud_divisor[com_port_nr] & 0xff00) + val
                 elif addr == base_addr + 1:
@@ -210,6 +221,7 @@ def out(addr, val):
                     com_port.stream.set_params(baudrate, parity, bytesize, stopbits)
             # Line Control Register: base_address + 3 (r/w)
             elif addr == base_addr + 3:
+                print " + 3"
                 baudrate, parity, bytesize, stopbits = com_port.stream.get_params()
                 if val & 0x80:
                     com_enable_baud_write[com_port_nr] = True
@@ -230,6 +242,7 @@ def out(addr, val):
                 com_port.stream.set_pins(brk=com_break[com_port_nr])
             # Modem Control Register: base_address + 4 (r/w)
             elif addr == base_addr + 4:
+                print " + 4"
                 com_port.stream.set_pins(rts=val & 0x2, dtr=val & 0x1)
 
 def wait(addr, ander, xorer):

@@ -1,0 +1,37 @@
+10000 REM ************ gi.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM IBM
+10002 REM 130296 changed to show correct filter in datafile.
+10003 REM Made by Lars Opedal at the University of Oslo,Renewed by AD, FT and MS
+10005 DATA gi
+10010 IF Q8%=0 THEN RETURN:REM if no uvb port
+10020 IF DN%<>8 THEN RETURN:REM if no disk recording
+12000 UC%=0:ZL%=0:WL$="1":WU$="6":CX$="10":REM -14499 take direct sun obs on uvb port
+12010 FLT$="0":TR$="s"+"a":REM azimuth tracking only
+12015 GOSUB 2450:REM take brewer temp
+14010 GOSUB 6610:GOSUB 6635:M1$=STR$(ZU%):GOSUB 9870:REM prism to uvb
+14020 M5$="0":GOSUB 6650:REM filter #2
+14040 TD=1500:GOSUB 7000:GOSUB 7800:GOSUB 6700:REM open iris
+14050 LOCATE ,SP:PRINT "4 - Brewer azimuth to sun
+14055 LOCATE ,SP:PRINT "5 - Director prism to uvb sensor"
+14060 GOSUB 9650:REM wait till ready
+14065 PRINT#4,"Taking GI measurements"
+14070 B$=DA$+" "+MO$+" "+YE$+" "+TE$:GOSUB 3050
+14075 GOSUB 7800:O1$="":GOSUB 9450:GOSUB 7500:REM test intensity
+14080 FLT$=STR$(INT(VAL(M5$)/64+.5))
+14090 CZ$=CX$:GOSUB 9710:GOSUB 8000:MS(0)=11:GI%=0:REM start obs and zero sums
+14100 GI%=GI%+1:GOSUB 14310
+14110 IF HF%<>0 OR GI%=5 THEN 14130
+14120 GOTO 14100
+14130 RETURN
+14299 :
+14300 REM get gi data
+14310 GOSUB 9670
+14320 MT$="":GOSUB 9900:REM wait till finished and get data
+14325 GOSUB 4400:IO=IO+1:GOSUB 3200
+14330 IF HF%<>0 THEN GI%=5:RETURN:REM home flag terminates gi reading
+14335 IF GI%<5 THEN GOSUB 9710
+14340 IF XN=1 THEN 14080:REM restart obs
+14500 RETURN
+14570 PRINT CL$:LOCATE ,SP:PRINT "GI measurement terminated":RETURN
+65529 REM *** dummy line ***

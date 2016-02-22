@@ -1,0 +1,6 @@
+10000 REM ************ nc.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 data nc
+20000 shell"n
+30000 return
+65529 rem dummy

@@ -1,0 +1,123 @@
+10000 REM ************ hgsum.rtn 24/11/2013 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM           MKII/MKIII/MKIV HG Calibration Summary
+55555 REM
+55555 REM              (SCI-TEC Instruments, July 1998)
+55555 REM                    (IOS Inc. 2007)
+55555 REM ************************************************************
+55555 REM
+55555 REM  This routine outputs a summary list of all mercury
+55555 REM  lamp calibrations for the current day. On MKIII Brewers it
+55555 REM  also outputs results from hp tests. 
+55555 REM  Global Variables Referenced:
+55555 REM    MS() S()
+55555 REM    CL$ DC$ DD$ JD$ L1$ L2$ LO$ MDD$ NO$ TYP$ YF$
+55555 REM
+55555 REM  Exits: 12220, 15020, 30040, 31010
+55555 REM
+55555 REM  Uses:  3100, 5400, 7220
+55555 REM
+55555 REM *************************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  24/11/13 - found a typo where C% was used in place of D5 in IF statements. Fixed.
+55555 REM  11/09/05 - also catches comments from fr.rtn
+55555 REM  11/08/05 - Added reading of HP records, hp/hg in front of each line in output now. VS
+55555 REM  24/06/98 - Better error handling
+55555 REM  21/07/95 - Always appends to the HGOAVG file
+55555 REM  12/01/95 - Writes HG warnings right into the printout
+55555 REM  04/01/95 - Rewritten by TM
+55555 REM *************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA hgsum
+11020 I=1:GOSUB 5400:REM temp coeffs
+11030 TOBS=0:NOBS=0:HPTOBS=0:REM  total/failure observations
+12000 '
+12001 ' *** Open Brewer Data File and Print Header for Summary ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12030 ON ERROR GOTO 31000
+12040 IF EOF(8) THEN 12200
+12050   INPUT#8,A$:IF A$="hg" THEN 12500
+12060   GOTO 12040
+12200 PRINT "No mercury lamp calibration data available for this day.":X=1:GOSUB 7220
+12210 ON ERROR GOTO 3100:CLOSE 8:IF SK$<>"" THEN ED%=3:GOSUB 5930
+12220 RETURN
+12500 CLOSE 8:OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12520 PRINT#4,"Summary of Brewer mercury lamp (and hp) calibrations for ";DC$;" (";JD$;")"
+12530 PRINT#4,:PRINT#4,"Measurements made at ";LO$;" with instrument # ";NO$
+12540 PRINT#4,USING "     Latitude            = \        \     Longitude           = \        \";L1$;L2$
+12550 PRINT#4,
+12560 PRINT#4,"Time(GMT)   Temp   Correlation   HG Cal Step #   Setting   Peak Intensity"
+12570 PRINT#4,
+13000 '
+13001 ' *** Process Mercury Lamp Calibration Data ***
+13002 '
+13010 HINTENSITY=-10:HG.C=0:HG.L=-1:TF$=""
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$:IF A$="co" THEN 13500
+13120   IF A$<>"hg" and a$<>"hp" THEN 13100
+13122   IF A$="hp" THEN 13600
+13130   INPUT#8,H$,C5,D5,M8,I,TE%: if abs(D5-val(mc$)) > 2 then a$="*" else a$=" "
+13140   TOBS=TOBS+1:PRINT#4,"hg ";LEFT$(H$+"    ",12);
+13150   PRINT#4,USING "###     ##.####        ####.##   &    #####       #######.#";TE%;C5;D5;a$;M8;I
+13160   GOSUB 20000:GOTO 13100
+13500   INPUT#8,H$,A$:IF LEFT$(A$,3)<>"hg:" and LEFT$(A$,3)<>"hp:" and LEFT$(A$,3)<>"fr:" THEN 13100
+13510   PRINT#4,LEFT$(H$+"    ",12);MID$(A$,4)
+13520   NOBS=NOBS+1:GOTO 13100
+13600 ' process HP
+13630   INPUT#8,H$,C5,I,D5,TE%: if abs(80-d5) > 5 then a$="*" else a$=" "
+13640   HPTOBS=HPTOBS+1:PRINT#4,"hp ";LEFT$(H$+"    ",12);
+13650   PRINT#4,USING "###     ##.####   ####.##        &                #######.#";TE%;C5;D5;a$;I
+13660   GOTO 13100
+14000 '
+14001 ' *** Close Brewer File and Print Out Summary Data ***
+14002 '
+14010 PRINT#4,:CLOSE 8:GOSUB 23000
+14020 IF NOBS>0 THEN PRINT#4,USING "     ###  warnings.";NOBS
+14030 IF S(0)>2 THEN PRINT#4,USING "     ###  hg observations.";TOBS
+14032 IF HPTOBS>2 THEN PRINT#4,USING "     ###  hp observations.";HPTOBS
+14100 PRINT#4,
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 ON ERROR GOTO 3100:IF SK$<>"" THEN ED%=3:GOSUB 5930
+15020 RETURN
+20000 '
+20001 ' *** Include Observation in Calculations ***
+20002 '
+20010 IF I>HINTENSITY THEN HINTENSITY=I:TF$=STR$(TE%)
+20012 IF ABS(D5-VAL(MC$)) > 2 THEN HG.C = HG.C+1: IF HG.L < ABS(D5-VAL(MC$)) THEN HG.L = ABS(D5-VAL(MC$))
+20020 RETURN
+23000 '
+23001 ' *** Add Daily Mean Values to Average File ***
+23002 '
+23010 ON ERROR GOTO 32000
+23020 AVGFILE$="HGOAVG"
+23100 CLOSE 6:OPEN DD$+AVGFILE$+"."+NO$ FOR APPEND AS #6
+23110   REM  high intensity  temperature  num.obs
+23120   PRINT#6,JD$;YF$;" ";
+23130   PRINT#6,USING "  #######.#  ###  ### ### #### ####";HINTENSITY;VAL(TF$);TOBS;HG.C;HG.L;VAL(MC$)
+23140 CLOSE 6
+23200 ON ERROR GOTO 31000
+23210 RETURN
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No Brewer (B) file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:IF SK$<>"" THEN ED%=3:GOSUB 5930
+30040 RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 GOTO 3100
+32000 '
+32001 ' *** Error Handler for Average File ***
+32002 '
+32010 IF ERR=53 AND ERL=23100 THEN RESUME 23140
+32030 GOTO 31000
+55555 '
+65529 REM proper last line

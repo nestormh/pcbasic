@@ -1,0 +1,6 @@
+10000 REM ************ saveall.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 data saveall
+20000 GOSUB 4482
+30000 return
+65529 rem dummy

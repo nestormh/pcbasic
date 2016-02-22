@@ -1,0 +1,137 @@
+10000 REM ************ xl.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM      MKIII/MKIV Extended Lamp Scanning Routine
+10020 REM
+10030 REM        (SCI-TEC Instruments, September 1998)
+10040 REM  
+10050 REM            See Also: ul.rtn, uv.rtn
+10060 REM ****************************************************
+10070 REM
+10080 REM  This routine scans an external lamp to cover
+10090 REM  the range 286.5 - 363 nm.  On a MKIV, slit #1 is
+10100 REM  used up to 325 nm.  On a MKIII, slit #1 is used up
+10110 REM  to 350 nm.  FW#3 is switched from the NiSO4+UG11
+10120 REM  position (242) to the open position (50) during the
+10130 REM  slit change on a MKIV.  This is unnecessary on a
+10140 REM  MKIII.  Also, FW#2 is switched (on a MKIV) to a
+10150 REM  higher neutral density filter position at 325 nm.
+10160 REM
+10170 REM  Side Effects:
+10180 REM
+10190 REM  Global Variables Referenced:
+10200 REM    DC(5,3) DI GI GS IO MU SP TD TIMER T1 VA ZA ZERO
+10210 REM    A1$() CR$ DD$ DQ$ JD$ LM$ MC$ MT$ M5$ M8$ NO$ O1$
+10220 REM    TE$ TIME$ TR$ UF$ YF$
+10230 REM    DN% DV% HF% MX% Q8% ZU%
+10240 REM
+10250 REM  Exits: 10510, 10520, 14720, 14950
+10260 REM
+10270 REM  Uses: 2090, 2450, 4450, 6610, 6635, 6650, 6700,
+10280 REM        7000, 7750, 9190, 9450, 9500, 9650, 9800,
+10290 REM        9805, 9870
+10300 REM *****************************************************
+10310 REM  History: dd/mm/yy
+10320 REM  14/09/98 - New zenith constant
+10330 REM  23/03/98 - Added support for Q9%/Q14%
+10340 REM  31/08/94 - Combined MKIII and MKIV versions, other
+10350 REM  minor changes.
+10360 REM  01/04/94 - Re-direction of program if the Brewer is in
+10370 REM  NO2 mode.
+10380 REM  28/02/94 - New header, comments added, line numbers
+10390 REM  cleaned up, adapted for MKIV, subroutine 33000 added,
+10400 REM  ZERO used, B2.BAS was modified on lines 2715, 3435 and
+10410 REM  3555 to flag XL scans like UL scans, CR$ added to the
+10420 REM  end of PRINT#8, FW2 switch at 325 nm added.
+10430 REM ********************************************************
+11000 '
+11101 ' *** Check Brewer Mode First ***
+11102 '
+11110 IF MDD$="o3" AND TYP$<>"mkii" THEN 12000
+11120 B$="XL must be run on a MKIII/IV ozone"
+11130 PRINT B$:IF FP%<>0 THEN PRINT#4,B$
+11140 X=1:GOSUB 7220:RETURN
+12000 '
+12001 ' *** Check and Determine Switching Limits ***
+12002 ' 
+12010 DATA XL
+12020 IF Q8%=0 THEN RETURN   'if no UVB port
+12030 IF DN%<>8 THEN RETURN  'if no disk recording
+12040 IF TYP$="mkiii" THEN WV=3500 ELSE WV=3250
+12050 SQ=1: GOSUB 33000: SWITCH.1TO5 = STEP.NUMBER
+12060 WV=3530: SQ=1: GOSUB 33000: LIMIT.OF1 = STEP.NUMBER
+12070 WV=3630: SQ=5: GOSUB 33000: LIMIT.OF5 = STEP.NUMBER
+12080 ND.SWITCH$ = STR$(VAL(UF$)+128)
+13000 '
+13001 ' *** Take UV-B Lamp Observation ***
+13002 '
+13010 MN=2865:MX=3630:DD=5			'max, min and increment
+13020 LE%=INT((MX-MN)/DD+1.5)			'number of lambdas
+13030 CX$="1":TR$="s"+"a"			'cycle count and track mode
+13040 GOSUB 2450:GOSUB 4450:OPEN DD$+"dum.dta"FOR OUTPUT AS 8
+13050 PRINT#8,"Integration time is 0.2294 seconds per cycle";CR$;
+13060 PRINT#8,"dt ";T1;CR$;"cy ";CX$;CR$;"le ";LE%;CR$;
+13070 PRINT#8,"ln ";LM$;CR$;"di ";DI;CR$;
+13080 PRINT#8,A1$(0);
+13090 GOSUB 6610:GOSUB 6635:M5$=UF$:GOSUB 6650
+13100 TD=1500:GOSUB 7000:GOSUB 7750:M1$=STR$(ZU%):GOSUB 9870:GOSUB 6700
+13110 LOCATE ,SP:PRINT "4 - Brewer azimuth to sun"
+13120 LOCATE ,SP:PRINT "5 - Director prism to uvb sensor":GOSUB 9650
+13130 M8$="-"+MC$: GOSUB 9805: M8$=STR$(-ZERO): GOSUB 9805
+13140 PRINT#4,"UVL scan started at ";TIME$+"    Lamp #";LM$;"  volts=______"
+13150 W1=MN: W2=MX: DW=DD: SQ=1: GOSUB 31000
+13160 IF HF%=0 AND DV%=1 THEN A1$(IO)="xl"+CR$+TIME$+CR$+TE$+CR$+STR$(ZA)+CR$+STR$(MU)+CR$
+13170 M8$=STR$(ZERO+1):GOSUB 9805:M8$="-1":GOSUB 9805:M8$=MC$:GOSUB 9805:GOSUB 9500
+13180 PRINT#8,"end":CLOSE 8
+13190 IF HF%<>0 THEN PRINT#4,"XL scan aborted at ";TIME$:RETURN:REM home flag
+14000 '
+14001 ' *** Record data on xl file ***
+14002 '
+14010 IF TYP$="mkiv" AND Q9%=1 THEN O1$="M,6,"+STR$(MX%):GOSUB 9450  'reset FW3 to original position
+14020 IF TYP$="mkiv" THEN M5$=UF$:GOSUB 9800                         'reset FW2 to original position
+14030 B$=JD$+YF$+"."+NO$
+14040 PRINT#4,"XL scan finished at ";TIME$+" Avg. volts=_______ temp=____ "
+14050 FTMP$ = DD$+"XL"+B$: GOSUB 4900: SHELL "copy "+FTMP$+"+"+DD$+"dum.dta "+DD$+"dum2.dta":  SHELL "copy "+DD$+"dum2.dta "+FTMP$
+14060 PRINT#4,"XL";B$;" data file extended at ";TIME$:RETURN
+30000 '
+30001 ' *** Switch to Extended Range ***
+30002 '
+30010 SQ=5: B=DC(SQ,2): C=DC(SQ,3): DQ$=STR$(SQ+1)
+30020 IF TYP$="mkiv" AND Q9%=1 THEN O1$="M,6,50": GOSUB 9450: M5$=ND.SWITCH$: GOSUB 9800
+30030 RETURN
+30500 '
+30501 ' *** Switch to Extended Range ***
+30502 '
+30510 SQ=5: B=DC(SQ,2): C=DC(SQ,3): DQ$=STR$(SQ+1)
+30520 IF TYP$="mkiv" AND Q9%=1 THEN O1$="M,6,50": GOSUB 9450
+30530 RETURN
+31000 '
+31001 ' *** Scan w1 to w2 step dw on slit sq ***
+31002 '
+31010 O1$="R,1,1,40;O":GOSUB 9450:GOSUB 9190: DARK = VA/40
+31020 PRINT #8, "DARK": PRINT#8, DARK: PRINT "dark=", DARK: SN$ = ""
+31030 B=DC(SQ,2):C=DC(SQ,3):DQ$=STR$(SQ+1)
+31040 FOR WV=W1 TO W2 STEP DW
+31050   GOSUB 2090:IF HF%<>0 THEN PRINT "aborted":PRINT#8,"aborted";CR$;:WV=W2:RETURN
+31060   SN$=STR$(INT((-B+ SQR(B*B-4*(DC(SQ,1)-WV)*C))/2/C))
+31070   SNN$=STR$(INT(VAL(SN$)*GS+GI))
+31080   IF VAL(SN$)>SWITCH.1TO5 THEN IF SQ=1 THEN GOSUB 30000: GOTO 31060
+31090   IF VAL(SN$)>LIMIT.OF1 THEN IF SQ=1 THEN GOSUB 30500: GOTO 31060
+31100   IF VAL(SN$)>LIMIT.OF5 THEN IF SQ=5 THEN WV=W2: RETURN
+31110   IF VAL(SN$)<0 OR (VAL(SNN$)<0 AND TYP$="mkiii") THEN 31190
+31120     IF WV<3000 THEN CX$="30" ELSE CX$="20"
+31130     O1$="":IF TYP$="mkiii" THEN O1$="M,"+N9$+","+SNN$+SE$
+31140     O1$=O1$+"M,10,"+SN$+";R,"+DQ$+","+DQ$+","+CX$+";O"
+31150     TI=TIMER*60:TM=TI:GOSUB 9450:TM=INT((TM+TI)/72)/100
+31160     VA = INT(VA*100/VAL(CX$))/100		'normalize output
+31170     PRINT#8,TM;CR$;WV;CR$;SN$;CR$;VA;CR$;	'record to file
+31180     PRINT USING "####.##  ####  #####  ";TM;WV;VAL(SN$);:PRINT VA
+31190 NEXT
+31200 RETURN
+33000 ' 
+33001 ' *** Determine The Step Number Given SQ and WV ***
+33002 '
+33010 B=DC(SQ,2): C=DC(SQ,3)
+33020 STEP.NUMBER = INT((-B+ SQR(B*B-4*(DC(SQ,1)-WV)*C))/2/C)
+33030 RETURN
+33040 REM
+65529 REM proper last line

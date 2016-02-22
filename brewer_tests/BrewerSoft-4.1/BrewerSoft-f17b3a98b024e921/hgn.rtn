@@ -1,0 +1,196 @@
+10000 REM ************ hgn.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM      MKII/MKIII/MKIV Mercury Lamp Calibration (O3)
+10020 REM
+10030 REM           (SCI-TEC Instruments, May 1996) IOS
+10040 REM
+10060 REM *******************************************************
+10070 REM
+10080 REM  This routine performs a mercury lamp calibration.
+10090 REM
+10120 REM  Global Variables Referenced:
+10130 REM    A1$() F() G$() MS()
+10140 REM    OZFW1 PC POFW2 TA TD TI
+10150 REM    HF% LO% MY% MZ% NMZ% OF% Q13% R% RM% TE%
+10160 REM    C$ CL$ CZ$ H$ M8$ MC$ MDD$ O1$ TYP$ WL$ WU$
+10170 REM
+10180 REM  Exits: 11020, 11350
+10190 REM
+10200 REM  Uses:  50, 9880, 2080, 2090, 2450, 3200, 3230, 3900,
+10210 REM         6610, 6630, 6650, 6700, 6800, 6850, 6900, 8000,
+10220 REM         8600, 9450, 9650, 9670, 9710, 9805, 9830, 9840,
+10230 REM         9860, 9900, 9940
+10240 REM
+10500 REM ********************************************************
+10510 REM  History: dd/mm/yy
+10515 REM  08/07/05 - index of saved scan fixed
+10516 REM  03/02/05 - HG scan is now saved to the b-file
+10517 REM  10-12/06/02 Fixed unneeded warmup after B1 + auto check for MC$ value
+10518 REM  22/09/01 Handles both 2967 and 302 and wide/narrow slit0, warmup=2min
+10519 REM  2967 line and writes steps moved.
+10520 REM  05/05/96 - Added more diagnostic info; fixed reset
+10530 REM  21/07/95 - Corrected MIOAVG file output; reduced size
+10540 REM  19/01/95 - Now supports new Brewer electronics
+10550 REM  04/01/95 - HG now writes comments to B file
+10560 REM  05/10/94 - HG sequence is HG-FR-HG-abort
+10570 REM ********************************************************
+11010 IF MDD$="o3" THEN 11100
+11020 B$="HG is not an NO2 Routine":PRINT B$:PRINT#4,B$:X=1:GOSUB 7220:RETURN
+11100 DATA hgn:
+11105 ZERON=int((-DC(6,2)+SQR(DC(6,2)*DC(6,2)-4*DC(6,3)*(DC(6,1)-2967.28)))/DC(6,3)/2-148+0.5):MCN=-ZERON+val(mc$)+ZERO: MCO$=MC$: MC$=str$(MCN)
+11110 'MC$=MCO$: MCO$=MC$: ZERON=ZERO
+11111 PRINT#4,"New ZERO = ";ZERON; " New CAL = "; MC$
+11120 IF Q13%=1 THEN 11200 : REM IF wide slit0
+11130   REM Narrow HG slit spectrum for 302 line
+11140   SS(9) =96  :SS(10)=588 :SS(11)=1223:SS(12)=1850:SS(13)=2419:SS(14)=2610
+11150   SS(15)=2742:SS(16)=2477:SS(17)=1937:SS(18)=1362:SS(19)=686 :SS(20)=373: hg.type$="narrow 302"
+11151 IF VAL(MC$) < 500 THEN 11300:  REM bypass 2967 line spectrum
+11155   REM Narrow HG slit spectrum for 2967line
+11156 PRINT#4, "Using narrow slit0 on line 296.7 nm HG line ..."
+11160   SS(9) =24  :SS(10)=227 :SS(11)=1242:SS(12)=2451:SS(13)=3593:SS(14)=4150
+11170   SS(15)=4182:SS(16)=4029:SS(17)=3036:SS(18)=1887:SS(19)=705 :SS(20)=57: hg.type$="narrow 296"
+11180   GOTO 11300
+11200   REM Wide HG slit spectrum 302 nm
+11210   SS(9) =923 :SS(10)=1321:SS(11)=1695:SS(12)=2101:SS(13)=2518:SS(14)=2665
+11220   SS(15)=2719:SS(16)=2559:SS(17)=2276:SS(18)=1917:SS(19)=1527:SS(20)=1162: hg.type$="wide 302"
+11225 IF VAL(MC$) < 500 THEN 11300:  REM bypass 2967 line spectrum
+11230 REM 3 1 97 julian new slitfunction:
+11236 PRINT#4, "Using wide slit0 on line 296.7 nm HG line ..."
+11240   SS(9)=2353  :SS(10)=4049:SS(11)=5736:SS(12)=7518:SS(13)=8986:SS(14)=9862
+11250   SS(15)=10000:SS(16)=9500:SS(17)=7868:SS(18)=6142:SS(19)=4546 :SS(20)=2858: hg.type$="wide 296"
+11300 SUMSS=0:SUMS=0:FOR I=9 TO 20:SUMSS=SUMSS+SS(I)^2:SUMS=SUMS+SS(I):NEXT:SA=SUMSS
+11310 MI%=0:PRINT#4,:PRINT#4,"**** HG Calibration ****"
+11320 PRINT CL$:GOSUB 20000
+11330 GOSUB 2080:GOSUB 3230:IF RM%=0 OR HF%=1 OR FH%=1 THEN GOSUB 9840
+11340 FH%=0:IF G$(JJ+1)<>"lo" THEN GOSUB 9840
+11350 HD$="B":RETURN
+20000 '
+20001 ' *** HG Wavelength Calibration ***
+20002 '
+20007 REM Warm up for TA/3600 minutes (10800 = 18000-7200 /wait for 3 min less after B1/)
+20009 GOSUB 2450: if TE% >10 or VAL(MC$) > 500 then ta = ta - 3*3600: hg.warmup=(ta-2*3600)/60
+20010 IF M9$<>"1" THEN GOSUB 9830:hg.warmup=timer: IF VAL(MC$) > 500 or te%>10 THEN ta = 7200:GOSUB 7050
+20020 GOSUB 6610:M4$=STR$(OZFW1):GOSUB 6660:M5$=STR$(POFW2):GOSUB 6650:GOSUB 9860
+20030 GOSUB 6700:TI=TIMER*60:TD=TI+1500
+20040 LOCATE ,SP:PRINT "4 - Rotate director prism to lamps":GOSUB 9650
+20050 T0=TA/3600:GOSUB 8600:PRINT CL$:LOCATE ,SP
+20060 PRINT "Waiting until ";H$;" for lamp warmup":REM GOSUB 6900
+20070 M8$="-50":print#4,"Move to ";m8$:GOSUB 9805:REM move micrometer
+20110 GOSUB 6800:hg.warmup=timer-hg.warmup:IF HF%<>0 THEN RETURN : REM Waiting for warm up
+20120 GOSUB 6900:print#4,"Intensity check = ";f(4)-f(1):hg.itest4=F(4):hg.itest1=F(1):if (F(4) - F(1)) > 498 then LO%=0: REM Testing intensity
+20125 if lo%=1 then print#4, "Intensity check failed. Repeating.": GOSUB 6900:hg.itest4=F(4):hg.itest1=F(1):if (F(4) - F(1)) > 498 then LO%=0: REM Testing intensity
+20127 M8$="50":GOSUB 9805:REM move micrometer 
+20130 if f(1)+f(2)+f(3)+f(4)+f(5) = 0 then b$="No intensity detected. Check PMT.": print#4, b$: gosub 3050
+20170 IF LO%=0 THEN 20210
+20180   LO%=0:B$="Lamp not detected - resetting micrometer(s) f1="+str$(hg.itest1)+" f4="+str$(hg.itest4)
+20190   PRINT#4,B$:GOSUB 3050:if need.fr=2 then HF%=1: goto 32010: else need.fr=1:return:'GOTO 1330:'IF TYP$="mkiii" THEN GOSUB 9830
+20200   'GOSUB 6900:IF LO%=1 THEN HF%=1:RETURN
+20210 GOSUB 2450:HLAST%=TE%:HTIME$=TIME$:GOSUB 3900:GOSUB 50
+20500 REM
+20501 REM Begin
+20502 REM
+20510 D7 = 4: REM the max passes looking for convergence before diode search
+20520 WL$="0":WU$="0":CZ$="4":REM set to hg wavelength
+20530 IF HF%<>0 THEN GOSUB 2090: PRINT CL$;C$;" terminated":RETURN
+20532 A1$(IO)=R$+"hgscan"+cr$+m5$+cr$+hg.type$+cr$+"warm="+str$(hg.warmup/60)+cr$+Time$+MP$+CR$+DB$+CR$+YE$+CR$
+20540 M8$="-"+MC$:GOSUB 9805:GOSUB 8000:REM move micrometer back and zero sums
+20550 W1=50:W2=240:WS=10:GOSUB 30000:REM scan forward
+20560 IF HF%<>0 THEN GOSUB 2090:PRINT CL$;C$;" terminated": M8$=MC$:GOSUB 9805:MC$=MCO$:RETURN
+20570 io=io+1:W1=240:W2=50:WS=-10:GOSUB 30000:REM scan backward
+20580 IF HF%<>0 THEN GOSUB 2090:PRINT CL$;C$;" terminated": M8$=MC$:GOSUB 9805:MC$=MCO$:RETURN
+20590 REM
+20591 REM Compare measured scan to standard
+20592 REM
+20600 NOISE=1E+10:for i=5 to 24: print#4, i,ms(i):next
+20610 FOR J=0 TO 4
+20620   SUMMM=0:SUMM=0:SUMSM=0
+20630   FOR I=9 TO 20
+20640     K=I+2*J-4:IF MS(K) > 0 AND NOISE > MS(K) THEN NOISE = MS(K)
+20650     SUMSM=SUMSM+SS(I)*MS(K):SUMMM=SUMMM+MS(K)*MS(K):SUMM=SUMM+MS(K)
+20660   NEXT
+20670   RNOISE=(SUMS*SUMMM-SUMSM*SUMM)/(SUMS*SUMM-12*SUMSM)
+20680   IF RNOISE<NOISE AND RNOISE>10 THEN NOISE=RNOISE
+20690   S(J)=(SUMSM-NOISE*SUMS)^2/(SUMSS*(SUMMM-2*NOISE*SUMM+12*NOISE^2))
+20700   IF J=2 THEN SNR = SUMM/(12*ABS(NOISE))
+20710   LOCATE JC+2+J,JR:PRINT S(J)
+20720 NEXT
+20730 REM
+20731 REM Find best fit
+20732 REM
+20740 D3=0
+20750 FOR I=0 TO 2
+20760   D1=S(I)-S(I+1):D2=S(I+1)-S(I+2):IF D1<0 AND D2>0 THEN D3=D1:D4=D2:CA=I+1
+20770 NEXT
+20780 IF D3=0 OR SNR<4 THEN 20820
+20790   CC=(D3-D4)/2:BC=-D3-CC*(2*CA-1):AC=S(CA)-BC*CA-CC*CA*CA
+20800   CA=-BC/2/CC:C5=AC+BC*CA+CC*CA*CA
+20810   C5=INT(P4%*C5)/P4%:D5=CA*20+VAL(MC$)-40:GOTO 20860
+20820   D5=0:D6=0:C5=0
+20830   FOR I=5 TO 28
+20840     IF MS(I)>D6 THEN D6=MS(I):D5=10*I-OF%
+20850   NEXT
+20860 M8$=STR$(INT(D5+.5)):GOSUB 9805:GOSUB 6850:
+20870 LOCATE 23,5:PRINT USING"est step####.## target \  \";D5;MC$;
+20880 PRINT#4,USING"\      \ ( #.#### ) ";TIME$;SQR(C5);
+20890 PRINT#4,USING" corr est for step####.## target is step \  \";D5;MC$;
+20900 PRINT#4,USING"####### ###.##";MS(15);SNR
+20905 PRINT#4,USING" micro is moved by ### steps";-VAL(MC$)+INT(D5+.5)
+20910 TG%=TE%:TH%=1:IF R%=1 THEN RETURN
+20920 IO=IO+1:gosub 3225:A1$(IO)=LF$+"hgn"+CR$+TIME$+CR$+STR$(C5)+CR$+STR$(D5)+CR$+M8$+CR$
+20930 A1$(IO)=A1$(IO)+STR$(MS(15))+CR$+STR$(TE%)+CR$+STR$(-VAL(MC$)+INT(D5+.5))+CR$
+20940 IO=IO+1
+20950 GOSUB 3225
+20960 IF C5>.9 AND SNR>4 AND ABS(VAL(M8$)-VAL(MC$))<1.5 THEN GOSUB 3200:GOSUB 9805: MC$=MCO$:RETURN
+20970 IF D7<1 THEN M8$=MC$:LO%=1:GOSUB 9805: MC$=MCO$:GOSUB 6850:GOSUB 31000:GOSUB 3200:GOTO 20510
+20980 D7=D7-1: GOTO 20520
+22000 '
+22001 ' *** Perform Diode Search and Reset Micrometer (#1) ***
+24000 '
+24001 ' *** Reset Micrometer #2 ***
+24002 '
+26000 '
+26001 ' *** Zero Filterwheel #3 ***
+26002 '
+28000 Y=Y+VAL(O1$)
+28010 IF TYP$="mkiv" THEN O1$="M,6,"+O1$+":G,800" ELSE O1$="B,3:M,10,"+O1$+":G,544"
+28020 GOSUB 9450:GOSUB 9190:RETURN
+30000 '
+30001 ' *** Wavelength Scan Routine ***
+30002 '
+30010 GOSUB 9670:M8$=STR$(W1):GOSUB 9805:GOSUB 9710
+30020 JN=0:JR=2:FOR MI=W1+WS TO W2 STEP WS
+30030   GOSUB 2090:IF HF%<>0 THEN MI=W2:GOTO 30120
+30040   LI=(MI-WS)/ABS(WS):X$="6":IF Q14%=1 THEN X$="9"
+30050   O1$="O:M,10,"+MID$(STR$(MI),2):IF TYP$="mkiii" THEN O1$=O1$+":M,"+X$+","+MID$(STR$(MI),2)
+30060   O1$=O1$+":R":GOSUB 9880:GOSUB 9450:GOSUB 9940
+30070   IF XN<>1 THEN 30100
+30080     O1$="O:M,10,"+MID$(STR$(LI*ABS(WS)),2):IF TYP$="mkiii" THEN O1$=O1$+":M,"+X$+","+MID$(STR$(LI*ABS(WS)),2)
+30090     O1$=O1$+":R":GOSUB 9450:GOTO 30030
+30100   JC=10+JN:IF JC=22 THEN JR=JR+15:JN=0:JC=10
+30110   hg.f$=str$(f(wl)):MS(LI)=MS(LI)+F(WL):LOCATE JC,JR:PRINT LI*10;MS(LI):JN=JN+1:A1$(IO)=A1$(IO)+hg.f$+cr$: if ms(li)=0 then print#4, "i$= ";i1$
+30120 NEXT:IF HF%<>0 THEN RETURN
+30130 GOSUB 9900:MS(W2/ABS(WS))=MS(W2/ABS(WS))+F(WL)
+30135 hg.f$=str$(f(wl)):A1$(IO)=A1$(IO)+hg.f$+cr$
+30140 JC=10:JR=JR+15:RETURN
+31000 '
+31001 ' *** Measure Diode Offset ***
+31002 '
+31010 IF MZ%<>0 THEN 31100
+31020   B$="HG failed - no diode offset constant":PRINT#4,B$:GOSUB 3050:HTIME$="!Failed!"
+31030   HF%=1:IF RM%=0 THEN GOSUB 9805:GOSUB 3230:FH%=0
+31040   IF G$(JJ+1)<>"lo" THEN GOSUB 9840
+31050   RETURN
+31100 T0=TIMER/60:GOSUB 8600:IF FH%<1 THEN 31200
+31110   HF%=1:B$= "*** Micrometer reset attempted - HG cal still failed":PRINT#4,B$:GOSUB 3050:HTIME$="!Failed!"
+31120   GOSUB 32000:RETURN
+31200 B$="HG cal too far off limits - resetting micrometer(s)"
+31210 FH%=FH%+1:PRINT#4,B$:GOSUB 3050
+31220 GOTO 1300
+31230 'RETURN
+32000 '
+32001 ' *** Diagnostic Message ***
+32002 '
+32010 B$="HG failed - standard diode offset apparently incorrect"
+32020 PRINT#4,B$:GOSUB 3050:HTIME$="!Failed!"
+32030 PRINT#4,"Check micrometer mechanism and reset by hand **":RETURN
+65529 REM proper last line

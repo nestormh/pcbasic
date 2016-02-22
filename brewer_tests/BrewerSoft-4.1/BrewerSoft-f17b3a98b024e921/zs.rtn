@@ -1,0 +1,78 @@
+10000 REM ************ zs.rtn 06/07/2012 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM        MKII/MKIII/MKIV Automated Zenith Sky Measurement
+55555 REM
+55555 REM             (SCI-TEC Instruments, March 1996)
+55555 REM
+55555 REM  See Also:
+55555 REM *************************************************************
+55555 REM
+55555 REM  Zenith sky
+55555 REM  .
+55555 REM
+55555 REM  Side Effects:
+55555 REM
+55555 REM  Global Variables Referenced:
+55555 REM    MS()
+55555 REM    ER% HF% UC% ZE%  ND  TD
+55555 REM    CL$ CY$ CZ$ M5$ TR$ ZS$
+55555 REM
+55555 REM  Exits: 13020
+55555 REM
+55555 REM  Uses:  2450, 3210, 3220, 4200, 4400, 6610, 6620, 6650, 6700,
+55555 REM         7000, 7500, 7800, 7950, 7960, 8000, 8200, 9650, 9670,
+55555 REM         9710, 9900
+55555 REM
+55555 REM **************************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  06/07/12 ZS will quit if intensity check sets M5$ to 0 and counts are lower than 500/cy
+55555 REM  27/09/95 - Changed location of temperature reading
+55555 REM  06/12/94 - Rewritten by TM
+55555 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11005 ' for ZW to work, these lines must be in the main:
+11006 ' 2915 IF C$="zw" THEN MDD2$=C$:C$="zs"
+11007 ' 8910 IF C$="zb" OR C$="zc" OR C$="zp" OR C$="zs" or C$="zw" THEN 8930
+11010 DATA zs
+11015 IF ZA < 30 AND M5P% <> 0 THEN B$="ZS is not done when solar zenith angle less than 30 degrees. Skipping.": GOSUB 3050: PRINT#4, B$: RETURN
+11020 TR$="s"+"a":UC%=0
+11021 if MDD2$ = "zw" then C$="zw"
+11022 IF MDD$="o3" OR MDD2$ <> "zw" THEN 11025
+11023 FLAG=1:GOSUB 7800:UC%=SR%/4:IF AZ%>SR%/2 THEN UC%=-SR%/4
+11025 IF VAL(ZS$)<128 AND M2<2 THEN ZS$="128"
+55555 '             Filter#1 to 0 for all, but to 3 for #017
+11030 GOSUB 6610:GOSUB 6620: IF NO$="017" THEN PRINT "  Switching to FW1@3 for #017": GOSUB 6635
+11040 M5$=ZS$:GOSUB 6650                'Filter#2 to ZS$
+11060 GOSUB 7750:M1$=STR$(ER%/2+HC%):GOSUB 9870     'Azimuth to sun, zenith to vertical
+11070 LOCATE ,SP:PRINT "4 - Director prism to zenith"
+11075 BAS$ = "5 - Brewer azimuth to sun": if UC% <> 0 then BAS$ = "5 - Brewer azimuth perpendicular to sun"
+11080 LOCATE ,SP:PRINT BAS$
+11090 GOSUB 6700:GOSUB 9650             'Wait until ready
+11100 GOSUB 7500:IF FS<500 AND VAL(M5$)=0 THEN BC%=12: B$="ZS intensity too low ("+STR$(FS)+"/cy), skipping.":GOSUB 3050:PRINT#4,B$:RETURN          'Wait until ready, test intensity and quit if too low
+12000 '
+12001 ' *** Take Set of Observations ***
+12002 '
+12010 GOSUB 2450:CZ$=CY$:GOSUB 9710     'Temperature
+12020 GOSUB 8000:MS(0)=11:DS%=0         'Initialize sums to zero
+12030 ZS$=M5$
+12040 DS%=DS%+1:GOSUB 20000
+12050 IF HF%<>0 OR DS%=7 THEN 13000
+12060 GOTO 12040
+13000 '
+13001 ' *** Clean Up and Exit ***
+13002 '
+13010 GOSUB 4200:GOSUB 3220:mdd2$=""
+13020 RETURN
+20000 '
+20001 ' *** Zenith Sky Observation ***
+20002 '
+20010 GOSUB 9670:GOSUB 9900:REM wait till finished and get data
+20020 IF HF%<>0 THEN PRINT CL$:B$="ZS measurement terminated":PRINT#4,B$:GOSUB 3050 :RETURN
+20030 IF XN=1 OR DS%<7 THEN GOSUB 9700          'Take a reading
+20040 IF XN=1 THEN 20010:REM restart obs
+20050 GOSUB 4400:GOSUB 8200             'Store and display data
+20060 GOSUB 3210                    'Output buffer if needed
+20070 ND=ND+1:RETURN
+65529 REM *** dummy line ***

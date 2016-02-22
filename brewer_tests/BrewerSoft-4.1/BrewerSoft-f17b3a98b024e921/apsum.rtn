@@ -1,0 +1,122 @@
+10000 REM ************ apsum.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM           MKII/MKIII/MKIV AP Calibration Summary
+10020 REM
+10030 REM                    (IOS Inc. 2007)
+10040 REM
+10060 REM ************************************************************
+10070 REM
+10080 REM  This routine outputs a summary list of all mercury
+10090 REM  lamp calibrations for the current day.
+10100 REM
+10220 REM  Global Variables Referenced:
+10230 REM    MS() S()
+10240 REM    CL$ DC$ DD$ JD$ L1$ L2$ LO$ MDD$ NO$ TYP$ YF$
+10250 REM
+10260 REM  Exits: 12220, 15020, 30040, 31010
+10270 REM
+10280 REM  Uses:  3100, 5400, 7220
+10290 REM
+10500 REM *************************************************************
+10510 REM  History: dd/mm/yy
+10550 REM  20/05/05 - writen by Volodya
+10560 REM *************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA hgsum
+11020 ap.data(1)=0: ERASE ap.data: DIM ap.data(48):ap.sum(1)=0:erase ap.sum:DIM ap.sum(48)
+11030 TOBS=0:REM  total observations
+12000 '
+12001 ' *** Open Brewer Data File and Print Header for Summary ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12030 ON ERROR GOTO 31000
+12040 IF EOF(8) THEN 12200
+12050   INPUT#8,A$:IF A$="ap" THEN 12500
+12060   GOTO 12040
+12200 PRINT "No ap test data available for this day.":X=1:GOSUB 7220
+12210 ON ERROR GOTO 3100:CLOSE 8:IF SK$<>"" THEN ED%=3:GOSUB 5930
+12220 ap.data(1)=0:erase ap.data:ap.sum(1)=0:erase ap.sum:RETURN
+12500 CLOSE 8:OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12520 PRINT#4,"Summary of Brewer ap test for ";DC$;" (";JD$;")"
+12530 PRINT#4,:PRINT#4,"Measurements made at ";LO$;" with instrument # ";NO$
+12540 PRINT#4,USING "     Latitude            = \        \     Longitude           = \        \";L1$;L2$
+12550 PRINT#4,
+12560 PRINT#4,"Time(GMT)     T1   T2   T3      HV            +15V           +5V          -15V          +24V          +5V ss        -8V ss      SLcurrent   SLvoltage"
+12570 PRINT#4,
+13000 '
+13001 ' *** Process AP Test Data ***
+13002 '
+13010 HINTENSITY=-10:TF$=""
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$
+13120   IF A$<>"ap" THEN 13100
+13130   INPUT#8,H$
+13132   FOR I=0 TO 15: Input#8,ap.data(i):next I
+13133   if q14%=1 then FOR I=16 TO 23: Input#8,ap.data(i):next I
+13134   input#8,a$:FOR I=24 TO 39: Input#8,ap.data(i):next I
+13135   if q14%=1 then FOR I=40 TO 47: Input#8,ap.data(i):next I
+13140   TOBS=TOBS+1:PRINT#4,LEFT$(H$+"    ",12);
+13150   FOR I=0 TO 2:PRINT#4,Using "##.# ";ap.data(i);:next i: FOR I=3 TO 7:GOSUB 25000:next i
+13152   FOR I=12 TO 13:GOSUB 25000:next i: FOR I=14 TO 15:GOSUB 27000:next i
+13160   print#4,:gosub 20000:GOTO 13100
+14000 '
+14001 ' *** Close Brewer File and Print Out Summary Data ***
+14002 '
+14010 PRINT#4,:CLOSE 8:gosub 21000
+14030 IF TOBS>0 THEN PRINT#4,USING "     ###  observations.";TOBS
+14100 PRINT#4,
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 ON ERROR GOTO 3100:IF SK$<>"" THEN ED%=3:GOSUB 5930
+15020 ap.data(1)=0:erase ap.data:ap.sum(1)=0:erase ap.sum:RETURN
+20000 '
+20001 ' *** Include Observation in Calculations ***
+20002 '
+20010 for i=3 to 15: ap.sum(i) = ap.sum(i)+ap.data(i+24): ap.sum(i+24)=ap.sum(i+24)+ap.data(i+24)^2:next i
+20020 RETURN
+21000 ' Averages
+21010 for i=3 to 15: ap.sum(i+24)=-ap.sum(i)^2+ap.data(i+24)*tobs: ap.sum(i) = ap.sum(i)/tobs:
+21020 if ap.sum(i+24)>0 and tobs>1 then ap.sum(i+24)=sqrt(ap.sum(i+24)/tobs/(tobs-1)): else ap.sum(i+24)=0
+21030 next i
+21999 return
+22000 '
+25000 ' Print ap data for channel I format: ##.##
+25002 if i=3 then gosub 26000: return:' High voltage
+25010 print#4,Using"+##.##(+#.##) ";ap.data(i);ap.data(i+24)-ap.data(i);
+25999 return
+26000 ' Print ap data for channel I format: ####.##
+26010 print#4,Using"####.##(+##.##) ";ap.data(i);ap.data(i+24)-ap.data(i);
+26999 return
+27000 ' Print ap data for channel I format: ##.##/##.##
+27010 print#4,Using"##.##/##.## ";ap.data(i);ap.data(i+24);
+27999 return
+28000 ' Print ap data for channel I format: ##.##
+28002 if i=3 or i=10 then gosub 29000: return:' High voltage
+28010 print#4,Using"+##.## ";ap.sum(i);
+28020 print#6,Using"+##.## ";ap.sum(i);
+28999 return
+29000 ' Print ap data for channel I format: ####.##
+29010 print#4,Using"####.## ";ap.sum(i);
+29020 print#6,Using"####.## ";ap.sum(i);
+29999 return
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No Brewer (B) file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:IF SK$<>"" THEN ED%=3:GOSUB 5930
+30040 RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 GOTO 3100
+32000 '
+32001 ' *** Error Handler for Average File ***
+32002 '
+32010 IF ERR=53 AND ERL=23100 THEN RESUME 23140
+32030 GOTO 31000
+65529 REM proper last line

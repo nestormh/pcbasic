@@ -1,0 +1,32 @@
+10000 REM ************ au.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM         MKII/MKIII/MKIV Set Up and Repeat Auto Sequence 
+10020 REM
+10030 REM *************************************************************
+10500 DATA au
+10510 IF Q1%+Q2%+Q3%+Q4%+Q5%<>5 THEN RETURN:REM return if not automatic
+10520 IF ED%=2 THEN ED%=3
+11000 '
+11001 ' *** Set up command sequence ***
+11002 '
+11010 UC%=0:JJ=0:QC=0:REM reset command counter to zero
+11100 IF TYP$="mkiii" THEN QC=QC+1:G$(QC)="h"+"p"
+11110 QC=QC+1:G$(QC)="h"+"g"
+11120 QC=QC+1:G$(QC)="d"+"s"
+11130 QC=QC+1:G$(QC)="z"+"s"
+11140 QC=QC+1:G$(QC)="d"+"s"
+11150 QC=QC+1:G$(QC)="z"+"s"
+11160 QC=QC+1:G$(QC)="d"+"s"
+11170 QC=QC+1:G$(QC)="z"+"s"
+11180 QC=QC+1:G$(QC)="d"+"s"
+11190 QC=QC+1:G$(QC)="z"+"s"
+11200 QC=QC+1:G$(QC)="b"+"1"
+11210 IF MDD$<>"o3" THEN 11230
+11220   QC=QC+1:IF TYP$="mkii" OR ZERO=3469 THEN G$(QC)="u"+"v" ELSE G$(QC)="u"+"x"
+11230 QC=QC+1:G$(QC)="a"+"u"
+11240 QR=1:IF G$(0)="" THEN G$(0)=C$:SK$=C$
+11400 IF G$(0)="au" THEN ZF=85:REM set to stop at zenith angle=85
+11410 IF ZA>85 AND G$(0)="au" THEN G$(1)="e"+"d":SK$="":REM end day to follow
+11420 IF RM%=1 THEN RETURN:REM if called from command sequence
+11430 GOTO 3400
+65529 REM proper last line

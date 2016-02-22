@@ -1,0 +1,169 @@
+10000 REM ************ re-sb.rtn 21/04/2012 19:47:08 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM     MKII/MKIII/MKIV Reset SB Brewer and Motor Initialization 
+55555 REM                 (SCI-TEC/IOS, Oct. 2007)
+55555 REM **************************************************************
+55555 REM
+55555 REM  This routine performs a reset on all Brewer motors, except
+55555 REM  the micrometer(s).
+55555 REM
+55555 REM  Global Variables Used:
+55555 REM    AD   BV   IO   QC   QR   SP   TA   TD
+55555 REM    AZ%  CP%  IS%  TH%  UC%  ZE%
+55555 REM    A1$()CL$  CP$  G$() I$   I1$  M1$ - M5$  M9$  O1$  TR$
+55555 REM
+55555 REM  Exits: 11010, 15030
+55555 REM
+55555 REM  Uses: 3220, 3300, 3400, 7000, 7050, 9270, 9300, 9450, 9500,
+55555 REM        9891
+55555 REM
+55555 REM **************************************************************
+55555 REM  History: dd/mm/yy
+55555 REM 21/04/12 Volodya - now added restoring the motor positions after RE
+55555 REM 20/10/07 Volodya - 3.76b now RE is separate for SB and MB Brewers
+55555 REM 12/01/03 ken - IOS-uart board Q16%=1, line 13021
+55555 REM 21/12/99 ken - add E command for Ze/Az faster reset
+55555 REM 18 6 98 julian change re and main for better reset
+55555 REM  7/1/97 -julian Change MTRUPD slit mask driving routine.
+55555 REM  10/11/96 - remove fill characters -julian
+55555 REM  25/10/95 - Resets FW#3, Iris/FW1,2 better 
+55555 REM  23/01/95 - Supports new Brewer electronics
+55555 REM  05/01/95 - Writes AZ/ZE information to B file
+55555 REM  05/10/94 - Resets everything except MIC#1, (MIC#2), FW#3
+55555 REM  12/09/94 - Reorganized code, moved firmware fix to start of
+55555 REM  code, better zenith zeroing, don't move az/ze if aborted
+55555 REM  28/02/94 - Bug fix line 19160, New header, comments added,
+55555 REM  lines renumbered, zenith motor zeroing sequence improved 
+55555 REM **************************************************************
+11000 DATA re
+11005 IF Q14%=0 THEN PRINT#4, "This reset routine is intended for the single-board Brewers only.  Cannot continue." RETURN:
+11010 IF Q12%=1 THEN RETURN:REM Don't reset in NOBREW mode operation
+11015 IF REFLAG% > 0 AND SK$<>"" THEN B$="Previous RE didn't seem to help, so not doing reset again. Operator intervention required. Quitting to menu.": REFLAG% = 0: HF%=1: NEED.FR=0: NEED.HG=0: PRINT #4, B$: GOSUB 3050: RETURN
+11020 KEY OFF
+12000 '
+12001 ' *** Verify Communications ***
+12002 '
+12010 UC%=0:TH%=0:TI=TIMER*60:FH%=0:IF CL$="" THEN GOSUB 2500
+13000 '
+13001 ' *** Reset The Brewer ***
+13002 '
+13010 PRINT CL$:FH%=FH%+1: IF FH%>10 THEN B$="Reset failed "+STR$(FH%)+" times. Quitting and going to the menu.": PRINT #4, B$: GOSUB 3050:HF%=1:REFLAG% = 0: HF%=1: NEED.FR=0: NEED.HG=0: RETURN
+13020 CLOSE 7:OPEN "com"+CP$+":1200,n,8,1,rs,ds,cs,cd" AS 7
+13025 ON COM(CP%) GOSUB 9300
+13030 IF INT(FH%/3)=FH%/3 THEN GOSUB 13500:GOTO 13070
+13040   BV=INP(AD):OUT AD,(BV OR 64):TA=420:GOSUB 7050
+13050   GOSUB 9891:TI=TIMER*60:IF TI>=TA THEN 13070
+13060   LOCATE 6,SP:PRINT "Reset in";INT(.9+(TA-TI)/60);"seconds (attempt";FH%;")      ":GOTO 13050
+13070 LOCATE 8,SP:PRINT "Asking Brewer to respond";:TD=1000+8200*Q14%:IF Q2%=1 THEN PRINT " (Tracker should be ON)"
+13080 GOSUB 7000:BV=INP(AD):OUT AD,(BV AND 191): X=1:GOSUB 7220
+13090 IS%=42:COM(CP%) ON
+13100 GOSUB 9891:IF TIMER*60>TD THEN 13000:REM retry
+13110 LOCATE 10,SP:PRINT INT(.9+(TD-TIMER*60)/60);"seconds  ":IF IS%=42 THEN 13100
+13120 I$="":IF(LEN(I1$)>3) THEN I$=LEFT$(I1$,LEN(I1$)-3):REM startup msg
+13126 PRINT CL$:LOCATE 6,SP:PRINT I$:IF Q14%=0 OR INSTR(I$,"nitializing")=0 THEN 13140
+13128   X=LOC(7):IF X>0 THEN A$=INPUT$(X,7):REM clear port
+13130   X=1:GOSUB 7220:IS%=42:COM(CP%) ON
+13132   GOSUB 9891:IF TIMER*60>TD THEN 13000:REM retry
+13134   LOCATE 8,SP:PRINT INT(.9+(TD-TIMER*60)/60);"seconds  ":IF IS%=42 THEN 13132
+13136   I$="":IF(LEN(I1$)>3) THEN I$=LEFT$(I1$,LEN(I1$)-3):REM startup msg
+13138   PRINT CL$:LOCATE 6,SP:PRINT I$:X=5:GOSUB 7220:GOTO 13150
+13140 PRINT I$:PRINT#4,I$
+13142 PRINT "Changing baudrate"
+13145 GOSUB 9270
+13146 PRINT "Baudrate changed":GOTO 13190
+13150 IF INT(FH%/3)=FH%/3 THEN GOSUB 13700
+13160 X=1:GOSUB 7220:X=LOC(7):IF X>0 THEN A$=INPUT$(X,7):REM clear port
+13170 PRINT "Please wait (this may take a minute)..."
+13180 GOSUB 9270:O1$="B,0":GOSUB 9450:IF Q14%=1 THEN 14000
+13190 O1$="L,16905,90,18041,"+DL$+",16953,110,18057,64,16977,90":GOSUB 9450
+13200 O1$="L,20372,137,20373,226,20374,115,20375,248,20376,22":GOSUB 9450
+13210 O1$="L,20377,169,20378,52,20379,162,20380,41,20381,137":GOSUB 9450
+13220 O1$="L,20382,58,20383,154,20384,18,20385,213,20386,18":GOSUB 9450
+13230 O1$="L,20387,2,20388,169,20389,233,20390,192,20391,77":GOSUB 9450
+13240 O1$="L,20392,101,19810,192,19811,79,19812,148":GOSUB 9450
+13250 O1$="L,19413,0,19414,255":GOSUB 9450
+13260 GOSUB 3300:GOTO 14000:KEY OFF
+13500 '
+13501 ' *** Get Brewer into Cosmac Mode ***
+13502 '
+13510 LOCATE 6,SP:PRINT "Switching to Cosmac mode (attempt";FH%;")"
+13520 IF INT(FH%/2)=FH%/2 THEN 13540
+13530   CLOSE 7:OPEN "com"+CP$+":9600,n,8,1,rs,ds,cs,cd" AS 7:ON COM(CP%) GOSUB 9300
+13540 X=LOC(7):IF X>0 THEN A$=INPUT$(X,7):REM clear port
+13550 IS%=42:COM(CP%) ON:PRINT#7,CHR$(1);"ANY";CHR$(28);"2 ^L";CHR$(4);:X=0.5:GOSUB 7220
+13560 X=LOC(7):IF X>0 THEN A$=INPUT$(X,7):REM clear port
+13570 IS%=42:COM(CP%) ON:PRINT#7,CHR$(1);"ANY";CHR$(28);"2 ^L";CHR$(4);:X=0.5:GOSUB 7220
+13580 X=LOC(7):IF X>0 THEN A$=INPUT$(X,7):REM clear port
+13590 IS%=42:COM(CP%) ON:PRINT#7,CHR$(1);"ANY";CHR$(15);"C ^H";CHR$(4);
+13600 IF INT(FH%/2)=FH%/2 THEN 13620
+13610   CLOSE 7:OPEN "com"+CP$+":1200,n,8,1,rs,ds,cs,cd" AS 7:ON COM(CP%) GOSUB 9300
+13620 RETURN
+13700 '
+13701 ' *** Fix Brewer Clock ***
+13702 '
+13710 MO$=LEFT$(DATE$,2):DA$=MID$(DATE$,4,2):YE$=RIGHT$(DATE$,2)
+13720 GOSUB 6200:GOSUB 7400:RETURN
+14000 '
+14001 ' *** Initialize Motors ***
+14002 '
+14010 KEY OFF:
+15000 '
+15001 ' *** Zeroing Zenith Motor ***
+15002 '
+15003 ' Note: this subroutine is taken directly from ZE.RTN
+15004 '
+15010 IF Q1%=0 THEN 16000:REM No zenith motor present
+15020 PRINT CL$:LOCATE ,SP:PRINT"Zeroing zenith":MS%=0:A$="101":IF ZE%>ER%*2/3 THEN A$="1"
+15030 FLAG=0:M1$="1":GOSUB 6550:MS%=ZE%-Y
+15310 PRINT CL$:LOCATE ,SP:B$="Zenith discrepancy = "+STR$(ZE%-MS%)
+15320 PRINT B$:PRINT#4,"Zenith zeroed at ";TIME$;" ";B$
+15330 GOSUB 3050
+15340 TA%=0:ZE%=0:GOTO 16000
+15350 :
+15800 REM *** Zenith zeroing (non-critical) failure
+15810 LOCATE ,SP:ZE%=ZE%-MS%
+15820 IF TA%=0 THEN B$="Zenith ZEROING FAILURE !!":PRINT B$:PRINT#4,B$:GOSUB 3050
+15830 IF TA%=1 THEN TA%=0:PRINT "Aborted":PRINT#4, "Zenith zeroing aborted"
+15840 X=1:GOSUB 7220:GOTO 16000
+16000 '
+16001 ' *** Zeroing Azimuth Motor ***
+16002 '
+16003 ' Note: this subroutine is taken directly from AZ.RTN
+16004 '
+16010 GOSUB 2300:IF Q2%=0 THEN 17000
+16020 PRINT CL$:LOCATE ,SP:PRINT"Zeroing azimuth":FLAG=0:M1$="2":GOSUB 6550:MS%=AZ%-Y
+16330 PRINT CL$:LOCATE ,SP:B$="Azimuth discrepancy = "+STR$(AZ%-MS%)
+16340 PRINT B$:PRINT"Positioning Tracker to sun":PRINT#4,"Azimuth zeroed at ";TIME$;" ";B$
+16350 GOSUB 3050
+16360 TA%=0:GOTO 17000
+16370 :
+16800 REM *** Azimuth zeroing (non-critical) failure
+16810 LOCATE ,SP:AZ%=AZ%-MS%
+16820 IF TA%=0 THEN B$="Azimuth tracker ZEROING FAILURE !!":HF%=1:PRINT B$:PRINT#4,B$:GOSUB 3050
+16830 IF TA%=1 THEN TA%=0:PRINT "Aborted":PRINT#4, "Azimuth zeroing aborted"
+16840 X=1:GOSUB 7220:GOTO 17000
+17000 '
+18000 '
+18001 ' *** Quit ***
+18002 '
+18020 IF TYP$<>"mkii" AND Q9%=1 THEN GOSUB 30000
+18030 AP%=0:GOSUB 3220: IF NEED.FR > 2 THEN REFLAG% = REFLAG% + 1
+18035 NEED.HG=1:HP.NOTDONE=1:NEED.FR = 0
+18040 GOSUB 7750: RETURN
+30000 '
+30001 ' *** Zero Filterwheel #3 ***
+30002 '
+30010 FLAG=0:M1$="6":GOSUB 6550
+30240 B$="FW#3 discrepancy "+STR$(Y)+" Moving filterwheel #3 to "+MDD$+" position at "
+30250 IF MDD$="o3" THEN B$=B$+STR$(MX%) ELSE B$=B$+STR$(NMX%)
+30260 PRINT B$:PRINT#4,B$:GOSUB 3050:PRINT#4,
+31000 '
+31010 VAR7$=STR$(Y)                                     'Step for FW#3
+31070 IF MDD$="o3" THEN 31080 ELSE 31100
+31080   VAR8$=MID$(STR$(MX%),2)                         'FW#3 Position
+31090   O1$="M,6,"+VAR8$:GOSUB 9450:GOTO 31200
+31100   VAR8$=MID$(STR$(NMX%),2)                        'FW#3 Position
+31110   O1$="M,6,"+VAR8$:GOSUB 9450
+31200 RETURN
+55555 '
+65529 REM proper last line

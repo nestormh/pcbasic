@@ -1,0 +1,155 @@
+10000 REM ****************** fr routine 25/02/05 *********************
+10010 REM         MKII/MKIII/MKIV Micrometer and FW#3 Reset
+10020 REM        for use with new RE, EZ140.cod and X13d.cod
+10030 REM              (IOS/SCI-TEC, Dec. 1999)
+10060 REM ************************************************************
+10070 REM
+10080 REM  This routine performs a reset of the micrometer(s) (and
+10090 REM  filterwheel #3 if present) for both O3 and NO2 modes of
+10100 REM  operation.
+10130 REM
+10140 REM  Global Variables Referenced:
+10150 REM    SPACE$()
+10160 REM    PC MX% MY% MZ% NMX% NMZ% TE%
+10170 REM    DD$ JD$ M8$ MC$ MDD$ NO$ O1$ TYP$ YF$
+10180 REM
+10210 REM  Exits: 12040
+10220 REM
+10230 REM  Uses:  3100, 9190, 9450
+10260 REM
+10500 REM ************************************************************
+10510 REM  History: dd/mm/yy
+10511 REM  21/12/99 Ken - added fw#3 reset, final mic. position and temperature
+10512 REM  12/3/97 julian. use E endpoint command
+10513 REM  17/1/97 -julian Use X to move micros#1,2 simultaneously
+10520 REM  14/07/95 - Fixed MIOAVG file output, based on Brewer type
+10530 REM  19/01/95 - Supports new Brewer electronics
+10540 REM  14/09/94 - Corrected operation of routine on MKIII Brewer
+10550 REM  18/08/94 - MX%/MY%/MZ% confusion done away with
+10560 REM  07/07/94 - Merged all FR and MR routines into one version
+10570 REM  24/05/94 - References to mode.fil removed, modified to
+10580 REM  handle both o3 and no2 modes using MDD$, MIOAVG.nnn file
+10590 REM  now contains mode distinction o3 or n2
+10600 REM ************************************************************
+10700 DATA fr
+11000 '
+11001 ' *** Perform Diode Search and Reset Micrometer (#1) ***
+11002 '
+11010 B$="Reset for "+TYP$+" "+MDD$+" - Micrometer diode search"
+11020 PRINT#4,:PRINT#4,B$:PRINT B$:Y%=0:VA=0
+11025 O1$="L,19414,150":GOSUB 9450:GOSUB 2450
+11030 IF Q14%=1 THEN O1$="I,10":GOSUB 9450:M1$="10":GOSUB 6550:GOTO 11210
+11040 O1$="R,1,1,1:G,544":GOSUB 9450:GOSUB 9190:IF (VA AND 4)<>4 THEN 11070
+11050 O1$="M,10,-500;G,544":Y%=Y%-500:PRINT Y%,VA:GOSUB 9450:GOSUB 9190
+11060 IF Y%<=-3000 THEN PRINT#4, "-3000 steps - QUIT - Micrometer #1 jammed at MIN. end ?":GOTO 11400
+11070 IF (VA AND 4)=4 THEN 11050
+11080 O1$="E,10":GOSUB 9400:TD=3500:GOSUB 7000:GOSUB 9500:GOSUB 9190:PRINT VA:Y%=Y%+ABS(VA)
+11082 IF ABS(VA)>=15100 THEN PRINT#4,"12800 steps - QUIT - MICROMETER #1 not found!":GOTO 11400
+11400 VAR3$=STR$(Y%+VAL(M8$)):IF Q14%=1 THEN VAR3$=STR$(Y%)
+11405 B$="Micrometer #1 diode found at step:  "+VAR3$+" ":PRINT#4,B$;:PRINT B$;
+11406 GOSUB 3050
+11410 VAR4$=STR$(INT(MZ%-PC*TE%+.5)):IF MDD$="n2" THEN VAR4$=STR$(INT(NMZ%-PC*TE%+.5))
+11412 IF TYP$="mkiii" THEN GOTO 12010
+11415 B$="now moving micrometer to "+VAR4$+" steps,":PRINT#4,B$:PRINT B$
+11420 IF Q14%=0 THEN M8$="-"+VAR4$:GOSUB 9810
+11430 IF Q14%=1 THEN M8$="0":GOSUB 9810:M8$=STR$(1-INT(MZ%-PC*TE%+.5)):GOSUB 9810:M8$="-1":GOSUB 9810
+11440 M8$=MC$:GOSUB 9810
+11990 O1$="G,544":GOSUB 9450:GOSUB 9190
+12000 IF (VA AND 8)=8 THEN PRINT#4,"MICROMETER APPEARS TO BE JAMMED AT MAX. END, You must re-position by HAND"
+12010 IF TYP$="mkiii" THEN GOSUB 20000:REM Reset Micrometer #2
+12015 O1$="L,19414,255":GOSUB 9450
+12021 IF (Q14%=1) OR TYP$<>"mkiii" THEN 12030
+12022 M1=-INT(MZ%-PC*TE%+.5):M2=-INT(MY%-PC*TE%+.5)-VAL(MC$)
+12024 B$="now moving both micrometers to "+STR$(M1)+" steps,"+STR$(M2)+"steps":PRINT#4,B$:PRINT B$
+12025 O1$="X,"+STR$(M1)+","+STR$(M2):GOSUB 9400:TD=3500:GOSUB 7000:GOSUB 9500
+12026 M8$=MC$:GOSUB 9805
+12027 O1$="L,19414,255":GOSUB 9450
+12028 IF TYP$="mkiii" OR TYP$="mkiv" THEN if q9%=1 then GOSUB 30000:REM Zero FW#3
+12030 GOSUB 32000:REM Save Average File
+12040 RETURN
+20000 '
+20001 ' *** Reset Micrometer #2 ***
+20002 '
+20010 B$="Micrometer #2 (M,6) diode search":PRINT#4,B$:PRINT B$:Y%=0:VA=0
+20015 IF Q14%=1 THEN O1$="I,9":GOSUB 9450:M1$="9":GOSUB 6550:GOTO 20190
+20020 O1$="R,1,1,1:G,800":GOSUB 9450:GOSUB 9190:IF (VA AND 32)<>0 THEN 20052
+20030   O1$="M,6,-500;G,800":Y%=Y%-500:PRINT Y%,VA:GOSUB 9450:GOSUB 9190
+20040   IF Y%<-3000 THEN PRINT#4, "-3000 steps - QUIT - Micrometer #2 jammed at MIN end ?":GOTO 21000
+20050   IF (VA AND 32)=0 THEN 20030
+20052 B$="Micrometer #2 diode search:":PRINT#4,B$:PRINT B$
+20053 O1$="E,6":GOSUB 9400:TD=3500:GOSUB 7000:GOSUB 9500:GOSUB 9190:PRINT VA:Y%=Y%+ABS(VA)
+20054 IF ABS(VA)=15100 THEN PRINT#4,"12800 STEPS-QUIT- Micrometer #2 not found!":GOSUB 3050:GOTO 21000
+20055 B$="Micrometer diode #2 found at step:":PRINT#4,B$;:PRINT B$;
+20058 PRINT Y%:PRINT#4,Y%:REM GOTO 21000
+21000 PRINT#4," "
+21010 VAR5$=STR$(Y%)
+21020 VAR6$=STR$(INT(MY%-PC*TE%+.5))
+21025 B$=B$+VAR5$:GOSUB 3050
+21030 RETURN
+30000 '
+30001 ' *** Zero Filterwheel #3 ***
+30002 '
+30010 IF Q14%=1 THEN O1$="I,6":GOSUB 9450:M1$="6":GOSUB 6550:GOTO 30230
+30020 IF TYP$="mkiii" THEN O1$="M,10,-" + MC$: GOSUB 9450:REM Remember pos of first micrometer
+30030 PRINT CL$;"Trying to zero filterwheel #3":PRINT#4,"Trying to zero filterwheel #3":Y=9
+30040 IF TYP$="mkiv" THEN O1$="M,6,-1:M,6,10:G,800" ELSE O1$="B,3:M,10,-1:M,10,10:G,544"
+30050 GOSUB 9450:GOSUB 9190
+30060 YY=VA:PRINT Y
+30070 IF TYP$="mkiv" THEN O1$="M,6,-25:G,800" ELSE O1$="B,3:M,10,-25:G,544"
+30080 Y=Y-25:GOSUB 9450:GOSUB 9190
+30090 IF Y<-600 THEN PRINT#4, "Filterwheel #3 diode not found":GOTO 31000
+30100 IF(YY-VA)<>32 THEN 30060
+30110 IF TYP$="mkiv" THEN O1$="M,6,25:G,800" ELSE O1$="B,3:M,10,25:G,544"
+30120 Y=Y+25:GOSUB 9450:GOSUB 9190
+30130 YY=VA:PRINT Y
+30140 IF TYP$="mkiv" THEN O1$="M,6,-10:G,800" ELSE O1$="B,3:M,10,-10:G,544"
+30150 Y=Y-10:GOSUB 9450:GOSUB 9190
+30160 IF(YY-VA)<>32 THEN 30130
+30170 IF TYP$="mkiv" THEN O1$="M,6,10:G,800" ELSE O1$="B,3:M,10,10:G,544"
+30180 Y=Y+10:GOSUB 9450:GOSUB 9190
+30190 YY=VA:PRINT Y
+30200 IF TYP$="mkiv" THEN O1$="M,6,-1:G,800" ELSE O1$="B,3:M,10,-1:G,544"
+30210 Y=Y-1:GOSUB 9450:GOSUB 9190
+30220 IF(YY-VA)<>32 THEN 30190
+30230 B$="Found diode at step "+STR$(Y)+" Moving filterwheel #3 to "+MDD$+" position at "
+30240 IF Q14%=1 THEN B$="FW#3 discrepancy "+STR$(Y)+" Moving filterwheel #3 to "+MDD$+" position at "
+30250 IF MDD$="o3" THEN B$=B$+STR$(MX%) ELSE B$=B$+STR$(NMX%)
+30260 PRINT B$:PRINT#4,B$:GOSUB 3050:PRINT#4,
+31000 '
+31010 VAR7$=STR$(Y)                                     'Step for FW#3
+31020 IF TYP$="mkiii" THEN 31030 ELSE 31070
+31030   VAR8$=MID$(STR$(MX%),2)                         'FW#3 Position
+31040   IF Q14%=0 THEN O1$="M,10,"+VAR8$:GOSUB 9450:O1$="B,0":GOSUB 9450:O1$="M,10,-1;M,10,2;M,10,-1:M,10,"+MC$
+31050   IF Q14%=1 THEN O1$="M,6,"+VAR8$:GOSUB 9450:O1$="M,6,-1;M,6,2;M,6,-1:M,6,"+MC$
+31060   GOSUB 9450:GOTO 31200:REM Restore first micrometer pos
+31070 IF MDD$="o3" THEN 31080 ELSE 31100
+31080   VAR8$=MID$(STR$(MX%),2)                         'FW#3 Position
+31090   O1$="M,6,"+VAR8$:GOSUB 9450:GOTO 31200
+31100   VAR8$=MID$(STR$(NMX%),2)                        'FW#3 Position
+31110   O1$="M,6,"+VAR8$:GOSUB 9450
+31200 RETURN
+32000 '
+32010 ' ***  Append to Average File ***
+32020 '
+32030 ON ERROR GOTO 32300
+32040 AVGFILE$="MIOAVG"                 'Average File Name
+32050 VAR1$=STR$(TE%)                   'Temperature
+32060 VAR2$=M8$                         'Last Cal Step
+32070 OPEN DD$+AVGFILE$+"."+NO$ FOR APPEND AS #6
+32080 IF LEN(VAR1$) < 10 THEN VAR1$=SPACE$(7-LEN(VAR1$))+VAR1$
+32090 IF LEN(VAR2$) < 10 THEN VAR2$=SPACE$(10-LEN(VAR2$))+VAR2$
+32100 IF LEN(VAR3$) < 10 THEN VAR3$=SPACE$(10-LEN(VAR3$))+VAR3$
+32110 IF LEN(VAR4$) < 10 THEN VAR4$=SPACE$(10-LEN(VAR4$))+VAR4$
+32120 IF LEN(VAR5$) < 10 THEN VAR5$=SPACE$(10-LEN(VAR5$))+VAR5$
+32130 IF LEN(VAR6$) < 10 THEN VAR6$=SPACE$(10-LEN(VAR6$))+VAR6$
+32140 IF LEN(VAR7$) < 10 THEN VAR7$=SPACE$(10-LEN(VAR7$))+VAR7$
+32150 IF LEN(VAR8$) < 10 THEN VAR8$=SPACE$(10-LEN(VAR8$))+VAR8$
+32160 '
+32170 PRINT#6,JD$+YF$;" ";MDD$;" ";VAR1$;" ";VAR2$;" ";VAR3$;" ";VAR4$;
+32180 IF TYP$="mkii"  THEN PRINT#6," "
+32190 IF TYP$="mkiii" THEN PRINT#6," ";VAR5$;" ";VAR6$;
+32200 IF TYP$<>"mkii" THEN IF Q9%=1 THEN PRINT#6," ";VAR7$;" ";VAR8$ ELSE PRINT#6," "
+32210 CLOSE 6
+32220 ON ERROR GOTO 3100 : RETURN
+32300 IF ERR = 53 AND ERL = 32070 THEN RESUME 32210 ELSE RESUME 32220
+65529 REM proper last line

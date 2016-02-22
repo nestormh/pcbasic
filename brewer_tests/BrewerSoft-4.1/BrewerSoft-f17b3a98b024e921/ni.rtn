@@ -1,0 +1,285 @@
+10000 REM ************ ni.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM                      Extended CZ Scan
+55555 REM
+55555 REM           (SCI-TEC Instruments, September 1998)
+55555 REM
+55555 REM **********************************************************
+55555 REM
+55555 REM  This routine performs a complete, customizable scan of
+55555 REM  a selected port.
+55555 REM
+55555 REM  Global Variables Referenced:
+55555 REM    A1$(), BS$, CL$, CR$, DD$, HF%, IO, IRIS, JD$, M9$,
+55555 REM    MC$, MDD$, MX%, NO$, Q2$, Q8%, Q14%, T1, TYP$, YF$
+55555 REM
+55555 REM  Exits: 11010, 11040, 25030
+55555 REM
+55555 REM  Uses:  50,   2090, 2450, 4450, 6800, 6900, 7000, 7220,
+55555 REM         8500, 8600, 9190, 9450, 9500, 9805, 9820, 9830,
+55555 REM         9840
+55555 REM
+55555 REM **********************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  31/01/06 - default values changed to NI
+55555 REM  14/09/98 - Q9%/Q14% support added
+55555 REM  29/01/98 - 3250A now correct; FW#2 not repositioned
+55555 REM  21/07/95 - Now handles non extended range MKIV's
+55555 REM  18/04/95 - Removed FW#3 setting options
+55555 REM  09/03/95 - More customizable; config file saved
+55555 REM **********************************************************
+11000 '
+11001 ' *** Check Mode of Operation ***
+11002 '
+11010 IF DN%<>8 THEN RETURN
+11020 IF MDD$="o3" THEN 11500
+11030   B$="CZ is not an NO2 routine":PRINT B$:PRINT#4,B$
+11040   X=1:GOSUB 7220:RETURN
+11500 '
+11501 ' *** Set Wavelength Limits ***
+11502 '
+11510 DATA NI
+11520 SWITCH.1TO5=3290:LIMIT.OF1=3500:LIMIT.OF5=3630:IF TYP$="mkiii" THEN SWITCH.1TO5=3500
+11530 IF TYP$="mkii" OR ZERO=3469 THEN SWITCH.1TO5=9999:LIMIT.OF1=3280:LIMIT.OF5=3290
+11540 N1$(1)="":N2$(1)="":ERASE N1$,N2$:DIM N1$(10),N2$(10):TT=0
+12000 '
+12001 ' *** Ask for/Use Config File Entries ***
+12002 '
+12010 N1$(0)="(0) Use Configuration File"
+12020 N1$(1)="(1) Enter New Defaults"
+12030 CLS:PRINT CL$:PRINT "Please select"
+12040 FOR I=0 TO 1:PRINT "      ";N1$(I):NEXT
+12050 PRINT "      ==> ";:GOSUB 35000:I=VAL(B$):IF B$="" THEN I=0
+12060   IF I<0 OR I>1 THEN 18500
+12070   IF HF%<>0 THEN 25000
+12080   PRINT N1$(I);" selected":COMENT$="":IF I=1 THEN COMENT$="x"
+12500 ON ERROR GOTO 12900
+12510 OPEN "ni.cfg" FOR INPUT AS 8
+12520 INPUT#8,MN,A$,MX,A$,DD,A$
+12530 INPUT#8,FILTER1,A$,FILTER2,A$,LAMP,A$,CZ%,A$,IR%,A$
+12540 CLOSE 8:ON ERROR GOTO 3100
+12550 GOTO 13000
+12900 '
+12901 ' *** File Error Handling ***
+12902 '
+12910 RESUME 12920
+12920 PRINT:PRINT"Bad or missing ni.cfg file - new defaults are required"
+12930 LAMP=2:MN=2900:MX=3250:DD=10
+12940 FILTER1=1:FILTER2=1:CZ%=4:IR%=1:COMENT$=""
+13000 '
+13001 ' *** Prepare to Output NI.CFG File ***
+13002 '
+13010 ON ERROR GOTO 3100
+13020 OPEN DD$+"dum.dta" FOR OUTPUT AS 6
+14000 '
+14001 ' *** Wavelength Range and Resolution ***
+14002 '
+14010 IF COMENT$="" THEN 14400
+14020 CLS:PRINT CL$:PRINT "Minimum Wavelength (Angstroms) ==> ";
+14030   GOSUB 35000:I=VAL(B$):IF B$="" THEN I=MN
+14040   IF I<2865 OR I>LIMIT.OF5 THEN 14000
+14050   IF HF%<>0 THEN 25000
+14060   MN=I
+14200 CLS:PRINT CL$:PRINT "Minimum wavelength set to ";MN;" angstroms"
+14210 PRINT "Maximum Wavelength (Angstroms) ==> ";
+14220   GOSUB 35000:I=VAL(B$):IF B$="" THEN I=MX
+14230   IF I<MN OR I>LIMIT.OF5 THEN 14200
+14240   IF HF%<>0 THEN 25000
+14250   MX=I
+14400 CLS:PRINT CL$:PRINT "Minimum wavelength set to ";MN;" angstroms"
+14410 PRINT "Maximum wavelength set to ";MX;" angstroms"
+14420 IF COMENT$="" THEN 14480
+14430 PRINT "Wavelength Increment (Angstroms) ==> ";
+14440   GOSUB 35000:I=VAL(B$):IF B$="" THEN I=DD
+14450   IF I<=0 OR I>100 THEN 14400
+14460   IF HF%<>0 THEN 25000
+14470   DD=I
+14480 PRINT "Wavelength increment set to ";DD;" angstroms":X=2:GOSUB 7220
+14490 PRINT#6,MN;",Minimum Wavelength":PRINT#6,MX;",Maximum Wavelength":PRINT#6,DD;",Wavelength Increment"
+15000 '
+15001 ' *** Position of Filter Wheel #1 ***
+15002 '
+15010 N1$(0)="(0) Horizontal polarizer"
+15020 N1$(1)="(1) Ground quartz diffuser (ND=2.32)"
+15030 N1$(2)="(2) Blocked aperture"
+15040 A$="Clear aperture":N1$(3)="(3) "+A$
+15050 IF TYP$="mkii" THEN N1$(4)="(4) "+A$ ELSE N1$(4)="(4) Ground quartz diffuser (ND=3.56)"
+15060 IF TYP$="mkii" THEN N1$(5)="(5) "+A$ ELSE N1$(5)="(5) Vertical polarizer"
+15070 IF COMENT$="" THEN I=FILTER1:GOTO 15400
+15200   CLS:PRINT CL$:PRINT "Enter the filter wheel #1 position desired"
+15210   FOR I=0 TO 5:PRINT "      ";N1$(I):NEXT
+15220   PRINT "      ==> ";:GOSUB 35000:I=VAL(B$):IF B$="" THEN I=FILTER1
+15230   IF I<0 OR I>5 THEN 15200
+15240   IF HF%<>0 THEN 25000
+15400 FILTER1=I:PRINT "Moving filter wheel #1 to ";N1$(I):N2$(2)=N1$(I)
+15410 O1$="M,4,"+MID$(STR$(320-FILTER1*64),2):GOSUB 9450:X=2:GOSUB 7220
+15420 PRINT#6,FILTER1;",";MID$(N1$(FILTER1),5)
+16000 '
+16001 ' *** Position of Filter Wheel #2 ***
+16002 '
+16010 N1$(0)="(0) Clear Aperture"
+16020 N1$(1)="(1) Neutral Density 0.494"
+16030 N1$(2)="(2) Neutral Density 0.91"
+16040 N1$(3)="(3) Neutral Density 1.44"
+16050 N1$(4)="(4) Neutral Density 1.91"
+16060 N1$(5)="(5) Neutral Density 2.34"
+16070 IF COMENT$="" THEN I=FILTER2:GOTO 16400
+16200   CLS:PRINT CL$:PRINT "Enter the filter wheel #2 position desired"
+16210   FOR I=0 TO 5:PRINT "      ";N1$(I):NEXT
+16220   PRINT "      ==> ";:GOSUB 35000:I=VAL(B$):IF B$="" THEN I=FILTER2
+16230   IF I<0 OR I>5 THEN 16200
+16240   IF HF%<>0 THEN 25000
+16400 FILTER2=I:PRINT "Moving filter wheel #2 to ";N1$(I):N2$(3)=N1$(I)
+16410 O1$="M,5,"+MID$(STR$(FILTER2*64),2):GOSUB 9450:X=2:GOSUB 7220
+16420 PRINT#6,FILTER2;",";MID$(N1$(FILTER2),5)
+17000 '
+17001 ' *** Position of Zenith Prism and Lamp State ***
+17002 '
+17020 N1$(1)="(1) Internal mercury lamp"
+17030 N1$(2)="(2) Internal standard lamp"
+17040 N1$(3)="(3) Quartz window"
+17050 N1$(4)="(4) External UVB port"
+17060 IF COMENT$="" THEN I=LAMP:GOTO 17400
+17200   CLS:PRINT CL$:PRINT "Enter the zenith prism position desired"
+17210   FOR I=1 TO 3:PRINT "      ";N1$(I):NEXT
+17220   IF Q8%=1 THEN PRINT "      ";N1$(4)
+17230   PRINT "      ==> ";:GOSUB 35000:I=VAL(B$):IF B$="" THEN I=LAMP
+17240   IF I<1 OR I>3+Q8% THEN 17200
+17250   IF HF%<>0 THEN 25000
+17400 PRINT "Moving prism to ";N1$(I):N2$(1)=N1$(I):PRINT#6,I;",";MID$(N1$(I),5)
+17410 IF I=1 OR I=2 THEN J=0:LAMP=I
+17420 IF I=3 THEN J=ER%*1/2+HC%:LAMP=0
+17430 IF I=4 THEN J=ZU%:LAMP=0
+17440 O1$="M,1,"+STR$(J):GOSUB 9450
+17450 IF LAMP=1 AND M9$<>"1" THEN GOSUB 9830
+17460 IF LAMP=2 AND M9$<>"2" THEN GOSUB 9820
+17470 TD=1500:GOSUB 7000:X=2:GOSUB 7220:T0=TA/3600:GOSUB 8600
+18000 '
+18001 ' *** Number of Cycles - Set Iris Position ***
+18002 '
+18010 IF COMENT$="" THEN 18200
+18020 CLS:PRINT CL$:PRINT "Number of slit mask cycles to use ==> ";
+18030   GOSUB 35000:I=VAL(B$):IF B$="" THEN I=CZ%
+18040   IF I<1 OR I>100 THEN 18000
+18050   IF HF%<>0 THEN 25000
+18060   CZ%=I
+18200 PRINT "Using ";CZ%;" slit mask cycles":X=2:GOSUB 7220
+18210 N1$(0)="(0) Closed"
+18220 N1$(1)="(1) Open"
+18230 IF COMENT$="" THEN I=IR%:GOTO 18700
+18500   CLS:PRINT CL$:PRINT "Enter iris position"
+18510   FOR I=0 TO 1:PRINT "      ";N1$(I):NEXT
+18520   PRINT "      ==> ";:GOSUB 35000:I=VAL(B$):IF B$="" THEN I=IR%
+18530   IF I<0 OR I>1 THEN 18500
+18540   IF HF%<>0 THEN 25000
+18700 IR%=I:PRINT "Moving iris to ";N1$(I)
+18710 O1$="M,3,"+STR$(IRIS*IR%):GOSUB 9450:X=2:GOSUB 7220
+18720 PRINT#6,CZ%;",Slit Mask Cycles":PRINT#6,IR%;",Iris ";MID$(N1$(IR%),5)
+19000 '
+19001 ' *** Add Any Comments If Desired ***
+19002 '
+19010 IF COMENT$="" THEN 20000
+19020 CLS:PRINT CL$:PRINT "Enter any comments if desired"
+19030 PRINT "      ==> ";:GOSUB 35000:IF B$="" THEN B$="Scan taken at "+TIME$
+19040 COMENT$=B$:IF HF%<>0 THEN 25000
+20000 '
+20001 ' *** Output File Header Information ***
+20002 '
+20010 CLOSE 6:SHELL "copy "+DD$+"dum.dta "+DD$+"ni.cfg"
+20020 GOSUB 2450:GOSUB 4450
+20030 OPEN DD$+"dum.dta" FOR OUTPUT AS 8
+20040 REM  A1$(IO)="cz"+CR$+TIME$+CR$+TE$+CR$+STR$(ZA)+CR$+STR$(MU)+CR$
+20050 N=8:GOSUB 39000:N=4:GOSUB 39000
+20060 IF LAMP=0 THEN 21000
+20070   PRINT CL$:LOCATE ,SP:PRINT"Waiting until ";H$;" for lamp warmup"
+20080   GOSUB 6800:IF HF%<>0 THEN 25000  'End if Aborted
+21000 '
+21001 ' *** Start Measurement Sequence ***
+21002 '
+21010 M8$="-"+MC$:GOSUB 9805:M8$=STR$(-ZERO):GOSUB 9805
+21020 PRINT#4,"NI scan start time = ";TIME$
+21030 PRINT#8,"NI scan start time = ";TIME$
+21040 W1=MN:W2=MX:DW=DD:SQ=1:'IF TYP$="mkiv" AND Q9%=1 THEN O1$="M,6,"+STR$(MX%):GOSUB 9450
+21045 IF W1>3350 THEN M8$="6000":GOSUB 9805
+21050 GOSUB 23000:IF WV>3350 THEN M8$="6000":GOSUB 9805
+21060 IF TYP$="mkiv" AND Q9%=1 THEN O1$="M,6,"+STR$(MX%):GOSUB 9450
+21070 M8$=STR$(ZERO+1):GOSUB 9805:M8$="-1":GOSUB 9805:M8$=MC$:GOSUB 9805:GOSUB 9500
+21080 IF HF%<>0 THEN PRINT#4,"CA scan aborted at ";TIME$:GOTO 25000
+22000 '
+22001 ' *** Record data on cz file ***
+22002 '
+22010 B$=JD$+YF$+"."+NO$
+22020 PRINT#4,"NI scan finished at ";TIME$
+22030 PRINT#8,"NI scan finished at ";TIME$
+22040 PRINT#8,"end": CLOSE 8
+22050 FTMP$ = DD$+"NI"+B$: GOSUB 4900: SHELL "copy "+FTMP$+"+"+DD$+"dum.dta "+DD$+"dum2.dta":  SHELL "copy "+DD$+"dum2.dta "+FTMP$
+22060 PRINT#4,"NI";B$;" data file extended at ";TIME$
+22070 GOTO 25000
+23000 '
+23001 ' *** Scan w1 to w2 step dw on slit sq ***
+23002 '
+23010 CLS:PRINT CL$:LOCATE 6,1:PRINT " NI Scan "
+23020 O1$="R,1,1,40;O":GOSUB 9450:GOSUB 9190:GOSUB 50:DARK=VA/40*CZ%
+23030 PRINT#8,"Dark Count = ";DARK:PRINT #8,:PRINT#4,"Dark Count = ";DARK
+23040 SQ=1:DQ$=STR$(SQ+1):K=-1:WU=7:WL=0:WU$="7":WL$="0":CZ$=STR$(CZ%)
+23050 PRINT#8,:PRINT#8,"Time (GMT)  Wavelength (Ang)  Step Number  Raw Counts  Counts/Second  Raw counts slit mask pos 0=>7"
+23060 PRINT#8,:LOCATE 10,1:PRINT "  TIME    WV    STEP    INTENSITY"
+23200 FOR WV=W1 TO W2 STEP DW
+23210   GOSUB 8500:GOSUB 2090:IF HF%<>0 THEN WV=W2:GOTO 23500
+23230   IF TYP$="mkiii" THEN O1$=SE$+"M,"+N9$+","+STR$(M2) ELSE O1$=""
+23240   O1$="M,10,"+STR$(M1)+O1$+":"
+23250   IF WV<=SWITCH.1TO5 OR SQ=5 OR TYP$="mkii" THEN 23280
+23260     IF TYP$="mkiv" AND Q9%=1 THEN O1$="M,6,50":GOSUB 9450
+23270     SQ=5:DQ$=STR$(SQ+1):GOTO 23210
+23280   IF WV>LIMIT.OF5 AND SQ=5 THEN WV=W2:PRINT "*** Cannot Go Beyond Slit 5 Range Limit ***":GOTO 23500
+23290   IF WV>LIMIT.OF1 AND SQ=1 THEN WV=W2:PRINT "*** Cannot Go Beyond Slit 1 Range Limit ***":GOTO 23500
+23300   GOSUB 9450:TI=TIMER*60:TM=TI:GOSUB 9700:gosub 9900:TM=INT((TM+TI)/72)/100
+23310   IF WV=W1 THEN TS=TM
+23320   VB=F(2):CY=CZ%:GOSUB 8350
+23330   PRINT#8, USING  " ####.##        ####.##          #####     #######.##   #######.##";TM;WV;M1;VB;VA;
+23335   PRINT#8, Using " #######  #### ####### ####### ####### ####### ####### #######";F(0);F(1); F(2); F(3); F(4); F(5); F(6); f(7)
+23340   K=K+1:IF K>=11 THEN K=0
+23350   LOCATE 12+K,1:PRINT USING "####.##  ####  #####   #######.##";TM;WV;M1;VA
+23360   LOCATE 13+K,1:PRINT "                                 ";
+23500 NEXT
+23510 RETURN
+25000 '
+25001 ' *** Clean Up and Exit ***
+25002 '
+25010 GOSUB 9840
+25020 ERASE N1$,N2$:CLOSE 6:CLOSE 8
+25030 RETURN
+35000 '
+35001 ' *** Input Routine with Timeout ***
+35002 '
+35010 IF TT=0 THEN TT=TIMER+10 ELSE TT=TIMER+200
+35020 A$="":B$="":IF INKEY$<>"" THEN 35020
+35030 WHILE (A$="") AND (TIMER<TT)
+35040   A$=INKEY$:IF A$=Q1$ OR A$=Q4$ OR A$=Q5$ THEN A$=BS$
+35050   IF A$=Q2$ THEN HF%=1:A$="":TT=TIMER:B$=""
+35060   IF A$<>CR$ AND A$<>"" AND A$<>BS$ THEN B$=B$+A$:PRINT A$;:A$="":TT=TIMER+10
+35070   IF A$=BS$ AND B$<>"" THEN B$=LEFT$(B$,LEN(B$)-1):PRINT A$;:A$="":TT=TIMER+10
+35080   IF A$=BS$ THEN A$=""
+35090 WEND:PRINT:RETURN
+39000 '
+39001 ' *** Print Header Sequence ***
+39002 '
+39010 PRINT #N,"************************************************************"
+39020 PRINT #N,"  NI Scan of ";N2$(1)
+39030 PRINT #N,"************************************************************"
+39040 PRINT #N,"Integration time is 0.2294 seconds per sample"
+39050 IF N=8 THEN PRINT #N,A1$(IO)
+39060 PRINT #N,"************************************************************"
+39070 PRINT #N,"Dead Time ------------------------- ";T1
+39080 PRINT #N,"Number of Cycles Used ------------- ";CZ%
+39090 PRINT #N,"Starting Wavelength (Angstroms) --- ";MN
+39100 PRINT #N,"Final Wavelength (Angstoms) ------- ";MX
+39110 PRINT #N,"Wavelength Increment (Angstroms) -- ";DD
+39120 PRINT #N,"Filter Wheel #1 Position ---------- ";N2$(2)
+39130 PRINT #N,"Filter Wheel #2 Position ---------- ";N2$(3)
+39140 PRINT #N,""
+39150 PRINT #N,COMENT$
+39160 PRINT #N,""
+39170 PRINT #N,"************************************************************"
+39180 RETURN
+65529 REM proper last line

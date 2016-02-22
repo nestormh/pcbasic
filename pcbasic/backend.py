@@ -333,7 +333,7 @@ class ComHandler(EventHandler):
     def check(self):
         """ Trigger COM-port events. """
         if (state.io_state.devices[self.portname] and
-                    state.io_state.devices[self.portname].char_waiting()):
+                state.io_state.devices[self.portname].char_waiting()):
             self.trigger()
 
 

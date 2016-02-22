@@ -1,0 +1,77 @@
+10000 REM ************ sl.rtn 24/06/2014 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM           MKII/MKIII/MKIV Standard Lamp Test Routine
+10020 REM
+10030 REM                (Sci-Tec Instruments, July 1994)
+10040 REM
+10050 REM  See also:
+10060 REM ****************************************************************
+10070 REM
+10080 REM  This routine performs a standard lamp test on the Brewer
+10090 REM  as a means of checking instrument drift over time.
+10100 REM
+10110 REM  Side Effects:
+10120 REM
+10130 REM  Global Variables Referenced:
+10140 REM    G$() MS() HF% LO% RM%
+10150 REM    NOFW1 OZFW1 POFW2 SP TA TD
+10160 REM    CL$ CZ$ H$ M4$ M5$ M9$ MDD$ O1$ WL$ WU$
+10170 REM
+10180 REM  Exits: 12150
+10190 REM
+10200 REM  Uses:  2450, 3215, 3230, 4200, 4400, 6610, 6650, 6660, 6700,
+10210 REM         6800, 6900, 7000, 7050, 8000, 8200, 8600, 9650, 9670,
+10220 REM         9710, 9820, 9840, 9860, 9900
+10230 REM
+10240 REM ****************************************************************
+10250 REM  History: dd/mm/yy
+10260 REM  10/05/94 - New header, comments added, line numbers cleaned up
+10270 REM
+10280 REM ****************************************************************
+10500 DATA sl
+10505 GOTO 12000                                'Main Module
+10510 '
+10511 ' *** Get Standard Lamp Data ***
+10512 '
+10530 GOSUB 9900                                'Wait until finished then get data
+10550 IF HF%<>0 THEN PRINT CL$:PRINT"sl measurement terminated":RETURN
+10560 IF XN=1 OR ND%<7 THEN GOSUB 9710
+10570 IF XN=1 THEN 10530                        'Restart Observation
+10580 GOSUB 4400:GOSUB 8200:GOSUB 3215          'Calculate Ratios
+10590 RETURN 
+11000 '
+11001 ' *** Filter Positions, Prism Rotation, Lamp Warm-Up ***
+11002 '
+11010 GOSUB 6610
+11020 IF MDD$="n2" THEN M4$=STR$(NOFW1) ELSE M4$=STR$(OZFW1)
+11030 GOSUB 6660
+11040 IF MDD$="o3" THEN M5$=STR$(POFW2) ELSE M5$=STR$(POFW2+64):REM     Make NOFW2 an instrument constant!
+11050 GOSUB 6650:GOSUB 9860:GOSUB 6700:TD=1500:GOSUB 7000:REM set wait time
+11060 LOCATE ,SP:PRINT "4 - Rotate director prism to lamps":GOSUB 9650
+11070 T0=TA/3600:GOSUB 8600
+11080 PRINT CL$
+11085 IF Q14%=0 THEN O1$="L,20248,14,20249,255;Z":GOSUB 9450:GOSUB 9190:SVA=10.68*VA/1000:GOTO 11089
+55555 REM set up request command, request and get value for channel 14 -- SL current on new electronics
+11087 O1$="?ANALOG.NOW[14]":GOSUB 9450:GOSUB 9190: VA=(VA AND 1023)*5/1024:SVA=VA*0.47434
+11089 SVA=INT(SVA*100)/100:IF SVA<0.1 THEN GOSUB 6900: IF LO%=1 THEN BC%=12:B$="SL lamp is dead: the current is "+STR$(SVA):GOSUB 3050:STIME$="SL  dead": RETURN:  'End if current low
+11090 LOCATE , SP:PRINT"Waiting until ";H$;" for lamp warmup (";SVA;" amps)":GOSUB 6900:RETURN
+12000 '
+12001 ' *** Standard Lamp Measurement ***
+12002 '
+12010 IF M9$<>"2" THEN GOSUB 9820			 'Standard Lamp On
+12020 PRINT#4,
+12030 PRINT#4,"**** "+MDD$+" Standard Lamp SL Test ****"
+12040 GOSUB 11000: IF SVA <0.1 THEN GOSUB 3230:GOSUB 9840:RETURN      'Setup;  Quit if no current
+12050 IF LO%=1 THEN NEED.HG=1: HP.NOTDONE=1:GOTO 12130  'End if intensity low
+12060 GOSUB 6800: IF HF%<>0 AND ND%<4 THEN STIME$="Aborted!": GOTO 12140    'End if Aborted
+12065 IF HF%<>0 THEN 12140    'End if Aborted
+12070 GOSUB 2450                                         'Get Brewer Temperature
+12080 CZ$=CY$:WL$="0":WU$="6"                            'Set sl Wavelengths 0 to 6
+12090 GOSUB 9670:GOSUB 9710:GOSUB 8000:MS(0)=11:ND%=0    'Start 1st obs and zero sums
+12100 ND%=ND%+1:IF ND%<8 THEN GOSUB 10510                'Get data
+12110 IF HF%<>0 OR ND%=7 THEN GOSUB 4200:O1$="":GOTO 12130
+12120 GOSUB 9670:LOCATE 8, 5: PRINT USING "## #####  #####  ########";ND%;MS(8);MS(9);MS(10):GOTO 12100                              'Repeat
+12130 GOSUB 3230:IF RM%=0 THEN GOSUB 9840:STIME$="!Failed!"
+12140 IF INSTR("dt rs sl",G$(JJ+1))=0 THEN GOSUB 9840
+12150 RETURN 
+65529 REM proper last line

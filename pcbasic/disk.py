@@ -217,8 +217,9 @@ def create_file_object(fhandle, filetype, mode, name='', number=0,
     # determine file type if needed
     if len(filetype) > 1 and mode == 'I':
         # read magic
+        curr_pos = fhandle.tell()
         first = fhandle.read(1)
-        fhandle.seek(-1, 1)
+        fhandle.seek(curr_pos)
         try:
             filetype_found = devices.magic_to_type[first]
             if filetype_found not in filetype:

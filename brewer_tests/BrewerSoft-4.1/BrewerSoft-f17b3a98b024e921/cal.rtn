@@ -1,0 +1,57 @@
+10000 REM ************ cal.rtn 22/04/2012 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM         MKII/MKIII/MKIV Set Up and Repeat Auto Sequence mostly for DS calibrations
+55555 REM     !! NOTE: this routine will do (hp)hg only if the temperature changes between attempts or if it has been more than 2 hrs since last HG !! 
+10020 REM
+10030 REM *************************************************************
+10500 DATA cal
+10510 IF Q1%+Q3%+Q4%+Q5%<>4 THEN RETURN:REM return if not automatic
+10520 IF ED%=2 THEN ED%=3
+11000 '
+11001 ' *** Set up command sequence ***
+11002 '
+11010 UC%=0:JJ=0:QC=0:REM reset command counter to zero
+11020 GOSUB 2450: IF ABS(HLAST%-TE%)>0 OR ABS(VAL(MID$(TIME$,4,2))+VAL(LEFT$(TIME$,2))*60-VAL(MID$(HTIME$,4,2))-VAL(LEFT$(HTIME$,2))*60)>120 THEN QT%=1 ELSE QT%=0:
+11100 QC=QC+1:G$(QC)="p"+"d"
+11103 QC=QC+1:G$(QC)="t"+"d"
+11105 IF TYP$="mkiv" THEN QC=QC+1:G$(QC)="o"+"3"
+11106 IF CALUV% = 0 THEN 11120
+11108 HPHGT% = 4: IF QT%=1 THEN HPHGT% = 10
+11110 OPT.LOWDST=OPT.LOWDS:SPR% =60-(TIMER/3600-INT(TIMER/3600))*60: SPR% = (SPR%-HPHGT%)/4: IF SPR%>0 AND OPT.LOWDS=1 THEN OPT.LOWDS=0
+11115 FOR DSPR%=1 TO SPR%: QC=QC+1:G$(QC)="d"+"s": NEXT DSPR%
+11120 IF TYP$="mkiii" AND QT%=1 THEN QC=QC+1:G$(QC)="h"+"p"
+11125 QC=QC+1:IF QT%=1 THEN G$(QC)="h"+"g" ELSE G$(QC)="b"+"0" 
+11126 IF CALUV% = 0 THEN 11130
+11128 REM QC=QC+1:IF ((ZERO+VAL(MC$))>3300 AND TYP$="mkiv") OR TYP$="mkii" THEN G$(QC)="u"+"f" ELSE  G$(QC)="u"+"x"
+11128 QC=QC+1:G$(QC)="u"+"a"
+11129 IF OPT.LOWDST=1 THEN QC=QC+1:G$(QC)="dimds-on"
+11130 QC=QC+1:G$(QC)="d"+"s"
+11132 QC=QC+1:G$(QC)="d"+"s"
+11133 QC=QC+1:IF ABS(VAL(MID$(TIME$,4,2))+VAL(LEFT$(TIME$,2))*60-VAL(MID$(STIME$,4,2))-VAL(LEFT$(STIME$,2))*60)>20 THEN G$(QC)="b"+"2" ELSE G$(QC)="b"+"0"
+11134 QC=QC+1:G$(QC)="d"+"s"
+11136 QC=QC+1:G$(QC)="d"+"s"
+11138 QC=QC+1:IF ABS(VAL(MID$(TIME$,4,2))+VAL(LEFT$(TIME$,2))*60-VAL(MID$(STIME$,4,2))-VAL(LEFT$(STIME$,2))*60)>20 THEN G$(QC)="s"+"l" ELSE G$(QC)="b"+"0"
+11140 QC=QC+1:G$(QC)="d"+"s"
+11150 IF CALDS%<>1 THEN QC=QC+1:G$(QC)="z"+"s"
+11160 QC=QC+1:G$(QC)="d"+"s"
+11170 QC=QC+1:G$(QC)="d"+"s"
+11172 IF TYP$="mkiv" AND CALUV% = 0 AND CALDS%<>1 THEN QC=QC+1:G$(QC)="n"+"2"
+11173 IF TYP$="mkiv" AND CALUV% = 0 AND CALDS%<>1 THEN QC=QC+1:G$(QC)="d"+"s"
+11174 IF TYP$="mkiv" AND CALUV% = 0 AND CALDS%<>1 THEN QC=QC+1:G$(QC)="b"+"2"
+11175 IF TYP$="mkiv" AND CALUV% = 0 AND CALDS%<>1 THEN QC=QC+1:G$(QC)="d"+"s"
+11176 IF TYP$="mkiv" AND CALUV% = 0 AND CALDS%<>1 THEN QC=QC+1:G$(QC)="z"+"s"
+11177 IF TYP$="mkiv" AND CALUV% = 0 AND CALDS%<>1 THEN QC=QC+1:G$(QC)="s"+"l"
+11178 IF TYP$="mkiv" AND CALUV% = 0 AND CALDS%<>1 THEN QC=QC+1:G$(QC)="o"+"3"
+11180 QC=QC+1:G$(QC)="d"+"s"
+11201 IF CALDS%<>1 THEN QC=QC+1:G$(QC)="g"+"i"
+11203 QC=QC+1:G$(QC)="d"+"s"
+11204 QC=QC+1:G$(QC)="d"+"s"
+11207 IF TYP$<>"mkiii" THEN QC=QC+1: G$(QC)="b"+"1"
+11210 QC=QC+1:G$(QC)="d"+"s"
+11230 QC=QC+1:G$(QC)="c"+"al"
+11240 QR=1:IF G$(0)="" THEN G$(0)=C$:SK$=C$
+11400 IF G$(0)="cal" THEN ZF=85:REM set to stop at zenith angle=85
+11410 IF ZA>85 AND G$(0)="cal" THEN G$(1)="e"+"d":SK$="":REM end day to follow
+11420 IF RM%=1 THEN RETURN:REM if called from command sequence
+11430 GOTO 3400
+65529 REM proper last line

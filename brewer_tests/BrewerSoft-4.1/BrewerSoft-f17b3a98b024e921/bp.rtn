@@ -1,0 +1,10 @@
+10000 REM ********************** bp routine 26/11/97 ********************
+10001 REM           MKII/MKIII/MKIV This Routine 
+10002 REM
+10003 REM Beeps
+10004 REM ***************************************************************
+10050 DATA bp
+10060 BEEP
+10200 return
+65529 REM *** proper last line ***
+   

@@ -1,0 +1,103 @@
+10000 REM ************ fl.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM                MKII/MKIII/MKIV
+10030 REM                  (BAUM, SMR, DWD 1996)
+10040 REM   Kalibrierung Åber alle Slit's, siehe FB
+10050 REM  NOTE: This is a test routine, for research purposes ONLY.
+10060 REM *************************************************************
+10070 REM
+10200 REM  Side Effects:
+10210 REM
+10220 REM  Global Variables Referenced:
+10230 REM    TBD
+10250 REM
+10260 REM  Exits: 11020, 13020
+10270 REM
+10280 REM  Uses:  TBD
+10310 REM
+10500 REM **************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  07/04/95 - Initial release, constants specific to #107 are
+10530 REM  found on line 33070
+10540 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA fl
+11020 IF Q8%=0 OR DN%<>8 THEN RETURN
+11030 TR$="s"+"a":UC%=0:PRINT#4,:PRINT#4,"****  FAST UVB Scan  ****"
+11040 GOSUB 2450				'Temperature
+11050 GOSUB 6610:GOSUB 6635			'Filter#1 to 3
+11060 M5$=UF$:GOSUB 6650			'Filter#2 to UF$
+11070 GOSUB 6700				'Iris open
+11080 GOSUB 7750:M1$=STR$(ER%*3/4):GOSUB 9870	'AZ/ZE to UVB
+11090 LOCATE ,SP:PRINT "4 - Director prism to UVB sensor"
+11100 TD=1500:GOSUB 7000:GOSUB 9650		'Wait until ready
+11110 M8$="-"+MC$: GOSUB 9805: M8$=STR$(-ZERO): GOSUB 9805
+12000 '
+12001 ' *** Take FAST UVB Observations ***
+12002 '
+12005 GOSUB 3700
+12010 CX$="20":CZ$=CX$:WL$="0":WU$="6":GOSUB 9700:GOSUB 8000:MS(0)=4:	'DS%=0
+12012 W1=2900:W2=3250:DW=35
+12014 IF TYP$="mkiii" THEN W1=2860:W2=3560
+12020 GOSUB 4450:OPEN DD$+"dum.dta"FOR OUTPUT AS 8
+12030 PRINT#8,"Int. time is 0.2294 sec. ";CR$;
+12040 PRINT#8,"dt ";T1;CR$;"cy ";CX$;CR$;"le ";LE%;CR$;
+12041 PRINT#8,"f1 ";M4$;CR$;
+12042 PRINT#8,"f2 ";M5$;CR$;
+12043 PRINT#8,"ke 2";CR$;
+12047 PRINT#8,"ln ";LM$;CR$;"di ";DI;CR$;
+12048 PRINT#8,A1$(0);
+12050 PRINT#8,"fl";CR$;" a";CR$;M5$;CR$;WL$;CR$;WU$;CR$;
+12060 PRINT "  TIME          ZA            STEP1         STEP2"
+12062 PRINT "  WV(S1)        S0            S1            S2            S3            S4            S5            DARK"
+12064 PRINT#8,"  TIME          ZA            STEP1         STEP2         WV(S1)        S0            DARK          S2            S3            S4            S5            S6"
+12070 GOSUB 20000
+12080 B$=JD$+YF$+"."+NO$
+19220 FTMP$ = DD$+"CZ"+B$: GOSUB 4900: SHELL "copy "+FTMP$+"+"+DD$+"dum.dta "+DD$+"dum2.dta":  SHELL "copy "+DD$+"dum2.dta "+FTMP$
+12100 PRINT#4,"FL";B$;" data file extended at ";TIME$
+13000 '
+13001 ' *** Clean Up and Exit ***
+13002 '
+13010 GOSUB 4200:GOSUB 3220
+13020 RETURN
+20000 '
+20001 ' *** Fast UVB Observation ***
+20002 GOSUB 50'
+20004 GOSUB 9670
+20006     FOR WV=W1 TO W2 STEP DW
+20008        SQ=1:GOSUB 8500
+20009        O1$="":IF TYP$="mkiii" THEN O1$ = "L,19414,120:"
+20010        IF TYP$="mkiii" THEN O1$="X,"+STR$(M1)+","+STR$(M2) ELSE O1$="M,10,"+STR$(M1)
+20011 REM       O1$=O1$+"M,10,"+STR$(M1):IF TYP$="mkiii" THEN O1$=O1$+":M,6,"+STR$(M2)
+20012        REM -9739 perform specific commands; update position (TR$)
+20014        GOSUB 9880:WT=(WU-WL+1)*VAL(CZ$)*18/7*IT:FLAG=4:IF TR$="ds" OR TR$="sa" THEN FLAG=3
+20016        T0=TIMER/60+WT/120
+20018        O1$=O1$+":R, "+WL$+", "+WU$+","+CZ$
+20019        IF TYP$="mkiii" THEN O1$=O1$+":L,19414,255"
+20020        GOSUB 9400:TI=TIMER*60:TS=TI/7200:     REM start obs at ts
+20022        TD=200+WT*60:GOSUB 7000:               REM set wait time and return
+20024        GOSUB 9900		                    'Take a reading
+20028        TI=TIMER*60:TM=TI:GOSUB 9450:TM=INT((TM+TI)/72)/100
+20030        PRINT#8,TM,ZA,M1,M2,WV,F(0),F(1),F(2),F(3),F(4),F(5),F(6);CR$;
+20040        PRINT TM,ZA,M1,M2
+20050        PRINT WV,F(0),F(2),F(3),F(4),F(5),F(6),F(1)
+20060    '    FOR I=WL TO WU:IF I=1 THEN 20090
+20070    '      VA=F(I):IF I<>1 THEN GOSUB 8350
+20080    '      FR3(I)=VA
+20090    '    NEXT
+25000       ' read Cal Response for each slit
+25010    '    RESP(1)=23175:RESP(2)=24523:RESP(3)=24530:RESP(4)=25720:RESP(5)=24328:RESP(6)=23704
+25015    '    FR3(1)=FR3(0)
+25020    '    FOR I=1 TO 6:ERG(I)=FR3(I)/RESP(I):NEXT
+25030       ' PRINT#4,"CORR. COUNTS  ";
+25040       ' PRINT#4,USING " ########"; FR3(1),FR3(2),FR3(3),FR3(4),FR3(5),FR3(6)
+25050       ' PRINT#4,"INT mw/m**2/nm";
+25060       ' PRINT#4,USING "   ###.##"; ERG(1),ERG(2),ERG(3),ERG(4),ERG(5),ERG(6)
+25062     NEXT WV
+25070 PRINT#8,"end":CLOSE 8
+25071 PRINT ZERO+1,MC$
+25072 M8$=STR$(ZERO+1):GOSUB 9805:M8$="-1":GOSUB 9805:M8$=MC$:GOSUB 9805:GOSUB 9500
+25080 RETURN
+65529 REM *** dummy line ***

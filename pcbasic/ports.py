@@ -14,6 +14,8 @@ import sys
 import os
 import socket
 import datetime
+import threading
+import time
 
 # kbhit() also appears in video_none.py
 import plat
@@ -32,8 +34,10 @@ except ImportError:
     from StringIO import StringIO
 
 try:
-    import serial
-    from serial import SerialException, serialutil
+    # import serial
+    # from serial import SerialException, serialutil
+    import SerialBrewer
+    from SerialBrewerWin32 import SerialException, serialutil
 except Exception:
     serial = None
     SerialException = IOError
@@ -113,6 +117,7 @@ class COMDevice(devices.Device):
     def open(self, number, param, filetype, mode, access, lock,
                        reclen, seg, offset, length):
         """ Open a file on COMn: """
+        print "opening"
         if not self.stream:
             raise error.RunError(error.DEVICE_UNAVAILABLE)
         # PE setting not implemented
@@ -136,7 +141,28 @@ class COMDevice(devices.Device):
         # inherit width settings from device file
         f.width = self.device_file.width
         f.col = self.device_file.col
+
+        # self.on_execution = True
+        # self.working_thread = threading.Thread(target=self.worker)
+        # self.working_thread.start()
+
+        # d = threading.Thread(target=self.worker(), name='Daemon')
+        # d.setDaemon(True)
+        # d.start()
+
         return f
+
+
+    def worker(self):
+        while (True):
+            # if (self.in_waiting != 0):
+            #     input_string += self.read(3)
+            self.device_file.check_read()
+            time.sleep(0.1)
+
+    # def __del__(self):
+    #     self.on_execution = False
+    #     self.working_thread.stop()
 
     def get_params(self, param):
         """ Parse serial port connection parameters """
@@ -208,6 +234,13 @@ class COMDevice(devices.Device):
         """ Whether a char is present in buffer. For ON COM(n). """
         if not self.device_file:
             return False
+        self.device_file.check_read()
+        print "device_file"
+        print type(self.device_file)
+        print type(self.device_file.in_buffer)
+        print "in_buffer", self.device_file.in_buffer
+        print "result", self.device_file.in_buffer != ''
+        print "****"
         return self.device_file.in_buffer != ''
 
 
@@ -227,10 +260,20 @@ class COMFile(devices.CRLFTextFileBase):
 
     def check_read(self, allow_overflow=False):
         """ Fill buffer at most up to buffer size; non blocking. """
+        print "checking read"
+        print type(self.fhandle)
+        # if (not self.fhandle):
+        #     return False
+        if (not self.fhandle.is_open):
+            return False
+        print 2
         try:
             self.in_buffer += self.fhandle.read(serial_in_size - len(self.in_buffer))
         except (EnvironmentError, ValueError):
+            # import traceback
+            # traceback.print_exc()
             raise error.RunError(error.DEVICE_IO_ERROR)
+        print 3
         # if more to read, signal an overflow
         if len(self.in_buffer) >= serial_in_size and self.fhandle.read(1):
             self.overflow = True
@@ -288,8 +331,16 @@ class COMFile(devices.CRLFTextFileBase):
             if self.linefeed:
                 s = s.replace('\r', '\r\n')
             self.fhandle.write(s)
+            # print type(self.fhandle)
         except (EnvironmentError, ValueError):
             raise error.RunError(error.DEVICE_IO_ERROR)
+        # from datetime import datetime
+        # import time
+        # t1 = datetime.now()
+        # self.fhandle.write('?BREWER.ID\r')
+
+        # while((datetime.now() - t1).microseconds < 200000):
+        #     time.sleep(0.001)
 
     def get(self, num):
         """ Read a record - GET. """
@@ -382,7 +433,7 @@ class SerialStream(object):
 
     def __init__(self, port, do_open=False):
         """ Initialise the stream. """
-        self._serial = serial.serial_for_url(port, timeout=0, do_not_open=not do_open)
+        self._serial = SerialBrewer.serial_for_url(port, timeout=0, do_not_open=not do_open)
         self._url = port
         self.is_open = False
 
@@ -453,8 +504,8 @@ class SerialStream(object):
             self._serial.setRTS(rts)
         if dtr is not None:
             self._serial.setDTR(dtr)
-        if brk is not None:
-            self._serial.setBreak(brk)
+        # if brk is not None:
+        #     self._serial.setBreak(brk)
 
     def get_pins(self):
         """ Get signal pins. """
@@ -475,10 +526,13 @@ class SerialStream(object):
         # NOTE: num=1 follows PySerial
         # stream default is num=-1 to mean all available
         # but that's ill-defined for ports
+        print "pcbasic.ports.SerialStream.read"
         return self._serial.read(num)
 
     def write(self, s):
         """ Write to socket. """
+        print "writing", s
+        print type(self._serial)
         self._serial.write(s)
 
 

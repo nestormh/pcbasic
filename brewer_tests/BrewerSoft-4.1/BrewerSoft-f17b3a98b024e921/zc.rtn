@@ -1,0 +1,68 @@
+10000 REM ************ zc.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM    MKII/MKIII/MKIV Automated Zenith Cloudy Sky Measurement
+10020 REM
+10030 REM             (SCI-TEC Instruments, March 1996)
+10040 REM
+10050 REM  See Also:
+10060 REM *************************************************************
+10070 REM
+10080 REM  Zenith sky measurement for a cloudy sky
+10090 REM  .
+10100 REM
+10200 REM  Side Effects:
+10210 REM
+10220 REM  Global Variables Referenced:
+10230 REM    MS()
+10240 REM    ER% HF% UC% ZE%  ND  TD
+10250 REM    CL$ CY$ CZ$ M5$ TR$ ZS$
+10260 REM
+10270 REM  Exits: 13020
+10280 REM
+10290 REM  Uses:  2450, 3210, 3220, 4200, 4400, 6610, 6620, 6650, 6700,
+10300 REM         7000, 7500, 7800, 7950, 7960, 8000, 8200, 9650, 9670,
+10310 REM         9710, 9900
+10320 REM
+10500 REM **************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  27/09/95 - Changed location of temperature reading
+10530 REM  06/12/94 - Rewritten by TM
+10540 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA zc
+11020 TR$="s"+"a":UC%=0
+11025 IF VAL(ZS$)<128 AND M2<2 THEN ZS$="128"
+11030 GOSUB 6610:GOSUB 6620             'Filter#1 to 0
+11040 M5$=ZS$:GOSUB 6650                'Filter#2 to ZS$
+11060 GOSUB 7750:M1$=STR$(ER%/2+HC%):GOSUB 9870     'Azimuth to sun, zenith to vertical
+11070 LOCATE ,SP:PRINT "4 - Director prism to zenith"
+11080 LOCATE ,SP:PRINT "5 - Brewer azimuth to sun"
+11090 GOSUB 6700:GOSUB 9650             'Wait until ready
+11100 GOSUB 7500                    'Test intensity, update az/ze
+12000 '
+12001 ' *** Take Set of Observations ***
+12002 '
+12010 GOSUB 2450:CZ$=CY$:GOSUB 9710     'Temperature
+12020 GOSUB 8000:MS(0)=11:DS%=0         'Initialize sums to zero
+12030 ZS$=M5$
+12040 DS%=DS%+1:GOSUB 20000
+12050 IF HF%<>0 OR DS%=7 THEN 13000
+12060 GOTO 12040
+13000 '
+13001 ' *** Clean Up and Exit ***
+13002 '
+13010 GOSUB 4200:GOSUB 3220
+13020 RETURN
+20000 '
+20001 ' *** Zenith Sky Observation ***
+20002 '
+20010 GOSUB 9670:GOSUB 9900:REM wait till finished and get data
+20020 IF HF%<>0 THEN PRINT CL$:PRINT "ZC measurement terminated":RETURN
+20030 IF XN=1 OR DS%<7 THEN GOSUB 9700          'Take a reading
+20040 IF XN=1 THEN 20010:REM restart obs
+20050 GOSUB 4400:GOSUB 8200             'Store and display data
+20060 GOSUB 3210                    'Output buffer if needed
+20070 ND=ND+1:RETURN
+65529 REM *** dummy line ***

@@ -1,0 +1,142 @@
+10000 REM ************ fi.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM          MKII/MKIII/MKIV Neutral density Measurements
+55555 REM
+55555 REM              (IOS August 2002)
+55555 REM              (MSC August 2003)
+55555 REM
+55555 REM *************************************************************
+55555 REM
+55555 REM  This routine tests and records the neutral densities at
+55555 REM  the various filterwheel positions to the file FW2TST.###.
+55555 REM
+55555 REM  Side Effects: 
+55555 REM
+55555 REM  Global Variables Referenced: 
+55555 REM    SP  TD
+55555 REM    CZ$ M5$ NO$ O1$ WL$ WU$
+55555 REM    HF%
+55555 REM
+55555 REM  Exits:  13020
+55555 REM
+55555 REM  Uses:  6610, 6635, 6650, 6690, 6900, 7000, 8300, 9450,
+55555 REM        9650, 9700, 9840, 9860, 9900
+55555 REM
+55555 REM *************************************************************
+55555 REM  History:  dd/mm/yy
+55555 REM  14/08/03 - Filters and slits are now alternating to reduce the error from the changing SL intensity
+55555 REM  
+55555 REM  
+55555 REM *************************************************************
+11000 '
+55555 ' *** Setup ***
+55555 '
+11010 DATA fi
+11011 NREP = 3: ' Number of repetitions for the test (takes 30 min for one rep)
+11013 FIST.X2(1,1) = 0: ERASE FIST.X2: DIM FIST.X2(8,6): FIST.X(1,1) = 0: ERASE FIST.X: DIM FIST.X(8,6): 'Arrays for statistics
+11014 GOSUB 30000: 'zero statistics
+11015 F2T(1,1) = 0:  ERASE F2T:  DIM F2T(8,6):  ' An array to save the F's for 8 filter positions times 6 slits
+55555 ' Filter positions are numbered this way:  FW1/1+FW2/(0-5) are positions 1 through 6, FW1/4+FW2/(1-0) are 7 and 8
+11017 GOSUB 16000: ' zero F2T
+11018 FW2CY$(1) = "":  ERASE FW2CY$:  DIM FW2CY$(8): ' An array to store the number of cycles per repetition for each filter position
+11019 FW2CY$(1)="1":  FW2CY$(2)="3":  FW2CY$(3)="8": FW2CY$(4)="30":  FW2CY$(5)="100":  FW2CY$(6)="250":  FW2CY$(7)="35": FW2CY$(8)="9"
+11020 IF M9$<>"2" THEN GOSUB 9820   'Standard Lamp ON
+11030 GOSUB 6610: GOSUB 6630     'Filter#1 to 1
+11040 M5$="0": GOSUB 6650        'Filter#2 to 0
+11050 GOSUB 6700: TD=1500: GOSUB 7000 'Iris open
+11060 LOCATE ,SP: PRINT "4 - Rotate director prism to lamps": GOSUB 9860
+11070 GOSUB 9650: T0=TA/3600: GOSUB 8600  'ENTER when ready
+11080 PRINT CL$: LOCATE ,SP: PRINT"Waiting until ";H$;" for lamp warmup": GOSUB 6900
+11090 IF LO%=1 THEN 13000       'End if Lamp is Off
+11100 GOSUB 6800: IF HF%<>0 THEN 13000    'End if Aborted
+11110 GOSUB 2450            'Get Temperature
+12000 '
+55555 ' *** Take Set of Observations ***
+55555 '
+12010 CLS: PRINT CL$: GOSUB 9670
+12020 CLOSE 8: OPEN DD$+"FIOAVG."+NO$ FOR APPEND AS 8:  PRINT#8, jd$;YF$;" ";te%;:  LOCATE 9,10:  PRINT "Test started at "; TIME$
+12030 PRINT#4,TIME$;"  Filterwheel #2 Test - Brewer #";NO$;" - ";DC$;" (";JD$;")"
+12040 PRINT#4,: PRINT#4,"FW Pos  Dark                        Neutral Densities"
+12050 PRINT#4,: PRINT#4,"N  CY REP  S0raw  S0corr  DCraw  DCraw  S1raw  S1corr  S2raw  S2corr S3raw S3corr S4raw S4corr S5raw S5corr"
+12070 FOR IREP=1 TO NREP: GOSUB 16000: 'zero F2T() 
+12072   LOCATE 10,10: PRINT "Repetition ";IREP;" of"; NREP;" (it takes about half an hour for 1 rep)":  ' Display the progress
+12075   ' ds4% - FW1 position; ds% - FW2 position; cz$ - number of cycles
+12100   DS4%=1:  FOR DS%=0 TO 5: FW2I = DS%+1:  CZ$=FW2CY$(FW2I):  GOSUB 20000 :  NEXT:  IF HF%<>0 THEN 13000
+12150   DS4%=4:  FOR DS%=1 TO 0 STEP -1:  FW2I = 8 - DS%:  CZ$=FW2CY$(FW2I):  GOSUB 20000 :  NEXT:  IF HF%<>0 THEN 13000
+12155   DS4%=4:  FOR DS%=0 TO 1: FW2I = 8 - DS%:  CZ$=FW2CY$(FW2I):  GOSUB 20000 :  NEXT:  IF HF%<>0 THEN 13000
+12160   DS4%=1:  FOR DS%=5 TO 0 STEP -1: FW2I = DS%+1:  CZ$=FW2CY$(FW2I):  GOSUB 20000 :  NEXT:  IF HF%<>0 THEN 13000
+12162   GOSUB 40000: 'collect statistics
+12165   O1$="B,2":GOSUB 9450: ' needed for the new electronics to prevent the lamp shut off
+12170 NEXT
+12180 GOSUB 50000: ' calc mean, std
+55555 ' Finish:  print the results, clean up and exit
+55555 ' first print the raw counts
+12205 FOR I=1 TO 6:  ' cycle over the 8(or 6) filter combinations
+12206   PRINT#8, USING "## ### ##"; I, val(FW2CY$(I)), NREP;
+12207   FOR J=0 TO 6: ' cycle over the 6 slits
+12208     if j=1 then goto 12242
+12209     PRINT#8, USING " ##### +###"; FIST.X(I,J); FIST.X2(I,J);: 
+12242   NEXT:  'PRINT#8,
+12243 NEXT:  PRINT#8,:CLOSE 8:  ' PRINT#8, TIME$: 
+13000 '
+55555 ' *** Clean Up and Exit ***
+13002 '
+13010 GOSUB 9840: F2T(1,1) = 0: ERASE F2T: FIST.X(1,1) = 0: ERASE FIST.X: FIST.X2(1,1) = 0: ERASE FIST.X2: FW2CY$(1)="":  ERASE FW2CY$:  X=FRE(""):  X=FRE(0)
+13020 RETURN
+13029 :
+15000 REM correct for the dead time, get the log, correct for temperature
+15000 IF VA>1E+07 THEN VA=1E+07
+15020 IF VA<2 THEN VA=2
+15025 F1=VA: FOR JDT=0 TO 8: VA=F1*EXP(VA*T1): NEXT
+15090 RETURN
+15099 :
+16000 REM zero F2T
+16000 FOR I=1 TO 8: FOR J=0 TO 6:  F2T(I,J)=0:  NEXT:  NEXT: ' Zero for statistic accumulation (may not be needed after ERASE)
+16090 RETURN
+16099 :
+20000 '
+55555 ' *** Filterwheel #2 Observation ***
+55555 '
+20010 O1$="M,5,"+MID$(STR$(DS%*64),2): GOSUB 9450    'set FW#2
+20015 O1$="M,4,"+MID$(STR$((5-DS4%)*64),2): GOSUB 9450    'set FW#1
+20020 WL$="0": WU$="6": GOSUB 9700: GOSUB 9900    'get data
+20030 IF HF%<>0 THEN PRINT CL$: PRINT#4, "Neutral density measurement terminated": RETURN
+20031 FOR I=0 TO 6:' each slit correct the counts for the dark counts and convert to counts/s
+20033   VA = (F(I)-F(1))*2/VAL(CZ$)/IT: GOSUB 15000:' dead time+
+20035   VA = LOG(VA)/CO*P4%+TC(I)*TE%
+20047   F2T(FW2I,I)=F2T(FW2I,I)+VA
+20050 NEXT:RETURN
+20059 :
+30000 'Zero statistics
+30000 FOR I=1 TO 8:  ' cycle over the 8 filter combinations
+30020   FOR J=0 TO 6:  ' cycle over the 6 slits
+30030     FIST.X(I,J) = 0
+30040     FIST.X2(I,J) = 0
+30050   NEXT
+30060 NEXT
+31000 RETURN
+31099 :
+40000 'Collects statistics after each repetition
+40000 FOR I=8 TO 1 step -1:  ' cycle over the 8 filter combinations
+40020   FOR J=0 TO 6:  ' cycle over the 6 slits
+40022     if i = 1 then F2T(I,J) = (F2T(I,J))/2: goto 40030
+40025     F2T(I,J) = (F2T(1,J)-F2T(I,J))/2: ' each position is done twice during one repetition
+40030     FIST.X(I,J) = FIST.X(I,J) + F2T(I,J):'PRINT #4, "f2t(";I;",";J;")=";F2T(I,J);:PRINT #4, " now fist.x(";I;",";J;")=";FIST.X(I,J)
+40040     FIST.X2(I,J) = FIST.X2(I,J) + F2T(I,J)*F2T(I,J):  'PRINT #4, "fist.x2(";I;",";J;")=";FIST.X2(I,J)
+40050   NEXT
+40060 NEXT
+41000 RETURN
+50000 'Calculates avg, std
+50010 FOR I=1 TO 8:  ' cycle over the 8 filter combinations
+50020   FOR J=0 TO 6:  ' cycle over the 6 slits
+50031     'PRINT #4, "fist.x2(";I;",";J;")=";FIST.X2(I,J)
+50032     IF NREP < 2 THEN FIST.X2(I,J)=0:  GOTO 50050' no std if only one repetition
+50040     FIST.X2(I,J) = (NREP*FIST.X2(I,J) - FIST.X(I,J)*FIST.X(I,J))/NREP/(NREP-1):  'PRINT #4, "fist.x2(";I;",";J;")=";FIST.X2(I,J)
+50042     IF FIST.X2(I,J) < 0 THEN FIST.X2(I,J) = 0
+50044     FIST.X2(I,J) = SQR(FIST.X2(I,J)): 'PRINT #4, "fist.x2(";I;",";J;")=";FIST.X2(I,J): ' std
+50045     FIST.X(I,J) = FIST.X(I,J)/NREP:  'PRINT #4, " fist.x(";I;",";J;")=";FIST.X(I,J):  ' mean
+50050   NEXT
+50060 NEXT
+51000 RETURN
+55555 '
+65529 REM proper last line

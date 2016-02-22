@@ -1,0 +1,165 @@
+10000 REM ************ po.rtn 24/06/2014 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM       MKII/MKIII/MKIV Print Out All Instrument Constants
+55555 REM
+55555 REM **************************************************************
+55555 REM Volodya: added the printout of the icf,zsf,uvr and dcf files and the OP_ST options
+11000 DATA po
+11010 PRINT#4,CHR$(12);:REM top of page
+11020 IF RM%=1 THEN 12000
+11030 PRINT CL$:LOCATE 6,19:PRINT "Position paper to top of page"
+11040 LOCATE 10,20:PRINT "  Press return when ready"
+11050 TA=1800:IF RM%=0 THEN TA=18000
+11060 GOSUB 7050
+11070 A$=INKEY$:IF A$=CR$ THEN 12000
+11080 TI=TIMER*60:IF TI<TA THEN 11070
+12000 '
+55555 ' *** Print Out Header ***
+12002 '
+12010 PRINT
+12020 IF TYP$="mkii"  THEN PRINT#4,SPC(25);"MKII  BREWER INSTRUMENT #";NO$
+12030 IF TYP$="mkiii" THEN PRINT#4,SPC(25);"MKIII BREWER INSTRUMENT #";NO$
+12040 IF ((ZERO+VAL(MC$))>3300 AND TYP$="mkiv")  THEN PRINT#4,SPC(25);"MKIV  BREWER INSTRUMENT #";NO$
+12040 IF ((ZERO+VAL(MC$))<=3300 AND TYP$="mkiv")  THEN PRINT#4,SPC(25);"MKIV extended range BREWER INSTRUMENT #";NO$
+12042 PRINT#4,SPC(25);"----------------------------"
+12043 PRINT#4,"Brewer is running on COM port #";CP%
+12044 PRINT#4,"Brewer operating software version is "+VER$+" "+VERD$
+12045 PRINT#4,"Auto Hg/Hp/Fr is ";INT(AUTOHG)
+12046 PRINT#4,"Filter wheel #2 oscillation (HIFW2) 0/1/-1 -> LOWER/OSCILATE/HIGHER  is ";INT(HIFW2)
+12047 PRINT#4,"Low/High limit for neutral density switch (standard 25000/80000)  = ";LATTN!;"/";UATTN!
+12048 PRINT#4,"Direct sun skip if low intensity = ";INT(OPT.LOWDS)
+12049 PRINT#4,"Using ";: IF CUB.U*CUB.F=1 THEN PRINT#4,"cubic dispersion." ELSE PRINT#4,"quadratic dispersion."  
+12050 PRINT#4,"Hg FW2 setting is "; HGFW2
+12055 PRINT#4,SPC(25);"----------------------------"
+12060 PRINT#4,SPC(31);DATE$;"  ";TIME$:PRINT#4,
+12100 PRINT#4,"Instrument  Constants File in use : "+ICF$ 
+12110 PRINT#4,"Zenith      Constants File in use : "+ZSF$ 
+12120 PRINT#4,"Dispersion  Constants File in use : "+DCF$;: IF CUB.U*CUB.F=1 THEN PRINT#4,".cubic" ELSE PRINT#4,"" 
+12130 PRINT#4,"UV response Constants File in use : "+UVR$ 
+12140 PRINT#4,SPC(25);"----------------------------"
+12200 PRINT#4,
+12205 PRINT#4," OP_ST file settings:"
+12210 PRINT#4," North correction = ";NC%;"   Horizon Correction = ";HC%;"   Steps/rev = ";SR% 
+12215 PRINT#4,
+12220 PRINT#4,       "*******************************************************************************"
+12230 PRINT#4,       "*ZE AZ Iris FW1 FW2 Clock A/D UV FW3 NewT 2nd-pol Q12% WindeHg SB RH% UART PCB*"
+12240 PRINT#4, USING "*## ## #### ### ### ##### ### ## ### #### ####### #### ####### ## ### #### ###*"; Q1%;Q2%;Q3%;Q4%;Q5%;Q6%;Q7%;Q8%;Q9%;Q10%;Q11%;Q12%;Q13%;Q14%;Q15%;Q16%;Q17%
+12250 PRINT#4,       "*******************************************************************************"
+12260 PRINT#4,
+13000 '
+55555 ' *** O3 Values Printout ***
+13002 '
+13010 PRINT#4,"******************************************************************************"
+13020 PRINT#4,"* Ozone Values   *    1    *    2    *    3    *    4    *    5    *    hg   *"
+13030 PRINT#4,"******************************************************************************"
+13040 PRINT#4,"  Wavelength(nm) *";:K=ZERO+VAL(MC$)
+13050 FOR I=1 TO 6
+13055  IF CUB.U*CUB.F=1 THEN 13075
+13060   J=INT((DC(I,1)+K*DC(I,2)+K*K*DC(I,3))*100+.5)/1000
+13070   IF I=6 THEN J=INT((DC(0,1)+K*DC(0,2)+K*K*DC(0,3))*100+.5)/1000
+13071   GOTO 13080
+13075   J=INT((DC3(I,1)+K*DC3(I,2)+K*K*DC3(I,3)+K*K*K*DC3(I,4))*100+.5)/1000
+13076   IF I=6 THEN J=INT((DC3(0,1)+K*DC3(0,2)+K*K*DC3(0,3)+K*K*K*DC3(0,4))*100+.5)/1000
+13080   PRINT#4,USING " ###.###  ";J;
+13090 NEXT:PRINT#4,
+13100 PRINT#4,"  Temp. Coeff    *";
+13110 FOR I=2 TO 7
+13120   PRINT#4,USING " ##.####  ";TC(I);
+13130 NEXT:PRINT#4,
+13140 PRINT#4,"  Disp. Coeff #1 *";
+13150 FOR I=1 TO 5
+13160    IF CUB.U*CUB.F=1 THEN PRINT#4,USING "#####.### ";DC3(I,1); ELSE PRINT#4,USING "#####.### ";DC(I,1);
+13170 NEXT: IF CUB.U*CUB.F=1 THEN PRINT#4,USING "#####.### ";DC3(0,1) ELSE PRINT#4,USING "#####.### ";DC(0,1)
+13180 PRINT#4,"  Disp. Coeff #2 *";
+13190 FOR I=1 TO 5
+13200    IF CUB.U*CUB.F=1 THEN PRINT#4,USING "##.###### ";DC3(I,2); ELSE PRINT#4,USING "##.###### ";DC(I,2);
+13210 NEXT: IF CUB.U*CUB.F=1 THEN PRINT#4,USING "##.###### ";DC3(0,2) ELSE PRINT#4,USING "##.###### ";DC(0,2)
+13220 PRINT#4,"  Disp. Coeff #3 *";
+13230 FOR I=1 TO 5
+13240    IF CUB.U*CUB.F=1 THEN PRINT#4,USING "##.###E-7 ";DC3(I,3)*10000000; ELSE PRINT#4,USING "##.###E-7 ";DC(I,3)*10000000;
+13250 NEXT: IF CUB.U*CUB.F=1 THEN PRINT#4,USING "##.###E-7 ";DC3(0,3)*10000000 ELSE PRINT#4,USING "##.###E-7 ";DC(0,3)*10000000
+13260 IF CUB.U*CUB.F <> 1 THEN 14000
+13320 PRINT#4,"  Disp. Coeff #4 *";
+13330 FOR I=1 TO 5
+13340    IF CUB.U*CUB.F=1 THEN PRINT#4,USING "##.##E-12 ";DC3(I,4)*1000000000000; ELSE PRINT#4,USING "##.##E-12 ";DC(I,4)*1000000000000;
+13350 NEXT: IF CUB.U*CUB.F=1 THEN PRINT#4,USING "##.##E-12 ";DC3(0,4)*1000000000000 ELSE PRINT#4,USING "##.##E-12 ";DC(0,4)*1000000000000
+14000 '
+55555 ' *** NO2 Values Printout ***
+14002 '
+14010 IF TYP$<>"mkiv" THEN 15000
+14020   PRINT#4,"******************************************************************************"
+14030   PRINT#4,"* NO2 Values     *    1    *    2    *    3    *    4    *    5    *    hg   *"
+14040   PRINT#4,"******************************************************************************"
+14050   PRINT#4,"  Wavelength(nm) *";:K=ZERO+VAL(MC$)-SWITCH%
+14060   FOR I=1 TO 6
+14070     J=INT((NDC(I,1)+K*NDC(I,2)+K*K*NDC(I,3))*100+.5)/1000
+14080     IF I=6 THEN J=INT((NDC(0,1)+K*NDC(0,2)+K*K*NDC(0,3))*100+.5)/1000
+14090     PRINT#4,USING " ###.###  ";J;
+14100   NEXT:PRINT#4,
+14110   PRINT#4,"  Temp. Coeff    *";
+14120   FOR I=2 TO 7
+14130     PRINT#4,USING " ##.####  ";NTC(I);
+14140   NEXT:PRINT#4,
+14150   PRINT#4,"  Disp. Coeff #1 *";
+14160   FOR I=1 TO 5
+14170     PRINT#4,USING "#####.### ";NDC(I,1);
+14180   NEXT:PRINT#4,USING "#####.### ";NDC(0,1)
+14190   PRINT#4,"  Disp. Coeff #2 *";
+14200   FOR I=1 TO 5
+14210     PRINT#4,USING "##.###### ";NDC(I,2);
+14220   NEXT:PRINT#4,USING "##.###### ";NDC(0,2)
+14230   PRINT#4,"  Disp. Coeff #3 *";
+14240   FOR I=1 TO 5
+14250     PRINT#4,USING "##.###E-6 ";NDC(I,3)*1000000;
+14260   NEXT:PRINT#4,USING "##.###E-6 ";NDC(0,3)*1000000
+15000 '
+55555 ' *** Print Out Other Constants ***
+15002 '
+15010 PRINT#4,"******************************************************************************"
+15020 PRINT#4,
+15030 PRINT#4,USING "ETC Values      :     O3 =   ######";B1;
+15040 PRINT#4,USING "  ;    SO2 =   ######";B2
+15050 IF TYP$="mkiv" THEN PRINT#4,USING "ETC Values      : NO2 DS =   ######";NB1;
+15060 IF TYP$="mkiv" THEN PRINT#4,USING "  ; NO2 ZS =   ######";NB2
+15070 PRINT#4,
+15080 PRINT#4,USING "O3 Absn Coeffs  :     O3 =   #.####";A1;
+15090 PRINT#4,USING "  ;    SO2 =   #.####";A3
+15100 PRINT#4,USING "SO2 Absn Coeffs :     O3 =        0  ;    SO2 =   #.####";A2
+15110 IF TYP$="mkiv" THEN PRINT#4,USING "NO2 Absn Coeff  :    NO2 =   ######";NA1
+15120 PRINT#4,
+15130 PRINT#4,USING "Micrometer steps/deg     =   ###.##";PC;
+15140 PRINT#4,      "   WL cal step number       =   ";MC$
+15150 PRINT#4,USING "Micrometer Zero          =   ######";ZERO;
+15160 PRINT#4,      "   Umkehr offset            =   ";UO$
+15170 PRINT#4,USING "Iris Open Steps          =   ######";IRIS;
+15180 PRINT#4,      "   Zenith steps/rev         =   ";ER$
+15190 IF Q14%=0 THEN PRINT#4,"                                      Slit mask motor delay    =   ";DL$
+15200 PRINT#4,
+15210 PRINT#4,USING "Micrometer 1 Offset O3   =   ######";MZ%;
+15220 IF TYP$="mkii"  THEN PRINT#4,
+15230 IF TYP$="mkiii" THEN PRINT#4,USING "   Micrometer 2 Offset      =   ######";MY%
+15240 IF TYP$="mkiv"  THEN PRINT#4,USING "   Micrometer 1 Offset NO2  =   ######";NMZ%
+15250 IF TYP$="mkiv"  THEN PRINT#4,USING "Mic 1 NO2/O3 Mode Change =   ######";SWITCH%
+15260 IF TYP$="mkiii" THEN PRINT#4,USING "Grating Slope            =   #.#####";GS;
+15270 IF TYP$="mkiii" THEN PRINT#4,USING "   Grating Intercept        =   ######";GI
+15280 IF TYP$<>"mkii" THEN PRINT#4,USING "Filterwheel 3 Offset O3  =   ######";MX%;
+15290 IF TYP$="mkiii" THEN PRINT#4,
+15300 IF TYP$="mkiv"  THEN PRINT#4,USING "   Filterwheel 3 Offset NO2 =   ######";NMX%
+15310 PRINT#4,
+15320 PRINT#4,USING "Dead Time(ns)            =  ###       ";T1*1E9;
+15330 IF Q14%=0 THEN PRINT#4,USING "Zenith Offset            =    #####";ZO% ELSE PRINT#4,
+15340 PRINT#4,USING "Buffer Delay(s)          =  #####.#   ";DELAY;
+15350 IF ZU%>999 THEN PRINT#4,USING "Zenith UVB Dome Position =    #####";ZU% ELSE PRINT#4,
+15360 PRINT#4,
+15370 PRINT#4,"Note:  Faster Processors May Require a Longer Buffer Delay"
+15380 PRINT#4,"                (Typically 0.2 to 0.8 Seconds)"
+15390 PRINT#4,
+15400 YE%=VAL(YE$)
+15410 PRINT#4,"Observations for ";MP$;DB$;YE$;", Julian day = " ;JD$
+15420 GOSUB 7700
+15430 PZ$=L3$
+15440 PRINT#4,"Observations made at ";LB$;LF$;LF$
+15450 LA=VAL(L1$):LO=VAL(L2$):PZ%=VAL(L3$):LC$=LO$
+15460 RETURN
+55555 '
+65529 REM dummy last line

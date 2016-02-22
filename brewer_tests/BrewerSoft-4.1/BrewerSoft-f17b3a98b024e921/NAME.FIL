@@ -1,0 +1,63 @@
+o3 Temp coef 1
+o3 Temp coef 2
+o3 Temp coef 3
+o3 Temp coef 4
+o3 Temp coef 5
+Micrometer steps/deg
+O3 on O3 Ratio
+SO2 on SO2 Ratio
+O3 on SO2 Ratio
+ETC on O3 Ratio
+ETC on SO2 Ratio
+Dead time (sec)
+WL cal step number
+Slitmask motor delay
+Umkehr Offset
+ND filter 0
+ND filter 1
+ND filter 2
+ND filter 3
+ND filter 4
+ND filter 5
+Zenith steps/rev
+Brewer Type
+COM Port #
+o3 Temp coef hg
+n2 Temp coef hg
+n2 Temp coef 1
+n2 Temp coef 2
+n2 Temp coef 3
+n2 Temp coef 4
+n2 Temp coef 5
+O3  Mic #1 Offset
+    Mic #2 Offset
+O3  FW  #3 Offset
+NO2 absn Coeff
+NO2 ds etc
+NO2 zs etc
+NO2 Mic #1 Offset
+NO2 FW  #3 Offset
+NO2/O3 Mode Change
+Grating Slope
+Grating Intercept
+Micrometer Zero
+Iris Open Steps
+Buffer Delay (s)
+NO2 FW#1 Pos
+ O3 FW#1 Pos
+ SL FW#2 Pos
+ uv FW#2 Pos
+Zenith Offset
+Zenith UV Pos
+Release date
+EXTRAS
+AUTO HG
+FW2 oscil
+HG FW#2 Pos
+Low Signal limit
+Upper Signal limit
+Use cubic DSP
+Skip DS if too dim
+O3ETC-R6
+So2ETC-R5
+Updated with CF

@@ -1,0 +1,92 @@
+10000 REM ************ lz.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+55555 REM                MKII/MKIII/MKIV Diagnostics
+55555 REM
+55555 REM             (IOS, Volodya, July 2011)
+55555 REM
+55555 REM  
+55555 REM *************************************************************
+55555 REM
+55555 REM  This routine searches for the zeroing sensor on the zenith
+55555 REM
+55555 REM  Side Effects:
+55555 REM
+55555 REM  Global Variables Referenced:
+55555 REM    B6% ER% Q1% TA% ZE% ZO%
+55555 REM    VA  O1$
+55555 REM
+55555 REM  Exits: 16010
+55555 REM
+55555 REM  Uses:  2090, 3220, 9190, 9450
+55555 REM
+55555 REM **************************************************************
+55555 REM  History: dd/mm/yy
+55555 REM  13/06/14 - Initial code using code from DI.RTN
+10560 REM **************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA ddd
+11011 PRINT CL$:BS=TIMER/60: CLOSE 8:OPEN DD$+"dum.dta" FOR OUTPUT AS 8
+11012 B$="Brewer ZE/SL test started at "+TIME$+" on "+DATE$: GOSUB 30000
+11015 GOSUB 9840: B$="Turning lamps off": GOSUB 30000:' lamps off
+11101 ' *** Filter Positions, Prism Rotation ***
+11102 '
+11110 '
+11120 IF MDD$="n2" THEN M4$=STR$(NOFW1) ELSE M4$=STR$(OZFW1)
+11130 GOSUB 9790: B$="Motor 4 to step "+M4$: GOSUB 30000: ' Move FW1
+11140 IF MDD$="n2" THEN M5$="64" ELSE M5$=STR$(POFW2):REM     Make NOFW2 an instrument constant!
+11150 GOSUB 9800: B$="Motor 5 to step "+M5$: GOSUB 30000:  ' Move FW2
+11155 GOSUB 9860: B$="Motor 1 to step 0": GOSUB 30000:  ' Move zenith to step 0
+11160 GOSUB 9750: B$="Motor 3 to step "+STR$(IRIS): GOSUB 30000:' Open Iris
+12000 CZ$="4":WL$="0":WU$="6"                            'Set Wavelengths 0 to 7
+12005 GOSUB 9710:GOSUB 9900: B$= "Intensities (lamps off, "+CZ$+" cy) :":GOSUB 30000:GOSUB 13000
+12006 GOSUB 9820: B$="Turning standard lamp on": GOSUB 30000: ' SL on
+12007 IF Q14%=0 THEN O1$="L,20248,14,20249,255;Z":GOSUB 9450:GOSUB 9190:SVA=10.68*VA/1000:GOTO 12009
+55555 REM set up request command, request and get value for channel 14 -- SL current on new electronics
+12008 O1$="?ANALOG.NOW[14]":GOSUB 9450:GOSUB 9190: VA=(VA AND 1023)*5/1024:SVA=VA*0.47434
+12009 SVA=INT(SVA*100)/100: B$="SL current is "+STR$(SVA):GOSUB 30000  'End if current low
+12020 GOSUB 9710:GOSUB 9900: B$= "Intensities (lamp on , "+CZ$+" cy) :":GOSUB 30000:GOSUB 13000:BS=TIMER/60
+12021 CZ$="10":WL$="0":WU$="6":WLR=2:                            'Set sl Wavelengths 0 to 6
+12022 FOR Z%=1 to 2
+12025 GOSUB 19000: FOR Y%=1 to 8: GOSUB 9710:GOSUB 9900: GOSUB 13000:GOSUB 20000:NEXT Y%:GOSUB 21000
+12026 B$= "Photons/sec mean, std, stat_noise:"+STR$(Mmean)+STR$(Mstd)+STR$(Mnoise): GOSUB 31000: IF Mstd/Mmean*100 < 0.2 THEN B$="The SL lamp is now stable": GOSUB 30000 ELSE B$="": GOSUB 30000
+12028 NEXT Z%
+12030 Q%=1:S0=0:S1=20:S2=1:S3=0: B$="Zenith prism": GOSUB 30000: GOSUB 14000
+12135 GOSUB 9840: B$="Turning lamps off": GOSUB 30000:' lamps off
+12140 B$="*end*": GOSUB 30000: CLOSE 8
+12145 B$=JD$+YF$+"."+NO$: FTMP$ = DD$+"LZ"+B$: GOSUB 4900: SHELL "copy "+FTMP$+"+"+DD$+"dum.dta "+DD$+"dum2.dta":  SHELL "copy "+DD$+"dum2.dta "+FTMP$
+12999 return
+13000 GOSUB 32000:GOSUB 31000
+13010 FOR Q=WL to 2: PRINT USING " #######"; F(Q);: NEXT Q
+13012 FOR Q=WL to WU: PRINT#4, USING " #######";F(Q);:PRINT#8, USING " #######";F(Q);: NEXT Q
+13015 IF MX<F(WL) THEN MX=F(WL): SM=Y%:
+13020 GOSUB 8300:GOSUB 8700:PRINT#4, USING " ##### #####";MS(8);MS(9):PRINT#8, USING " ##### #####";MS(8);MS(9): PRINT USING " ##### #####";MS(8);MS(9)
+13100 RETURN
+14000 ' Moving motor Q% from S0 to S1 with step S2. Move to step S3 after
+14010 MX=-1:SM=-1:GOSUB 9450:FOR Y%=S0 to S1 step S2
+14020 O1$="M,"+STR$(Q%)+","+STR$(Y%):GOSUB 9450:GOSUB 9710:GOSUB 9900: B$="Motor "+STR$(Q%)+" step "+RIGHT$("  "+STR$(Y%),3)+" :":GOSUB 31000:GOSUB 13000:NEXT Y%
+14030 O1$="M,"+STR$(Q%)+","+STR$(S3):GOSUB 9450:B$="Max lamp intensity found at step "+STR$(SM)+" (expected at step "+STR$(S3)+")":GOSUB 30000
+14040 RETURN
+14999 '
+19000 ' Zero sums
+19010 MS=0:MSS=0:SSAM=0
+20000 ' Accumulate sums of F/1000
+20010 VA=F(WLR)-F(1):GOSUB 8350:MS=MS+VA/1000:MSS=MSS+VA*VA/1000000:SSAM=SSAM+1
+20020 RETURN
+21000 ' Calculate std and mean
+21005 MSTD = 0: MMEAN=0: IF SSAM<2 THEN 21030
+21010 Mstd = INT(SQR(ABS((1.0*MSS*SSAM-MS*MS)/SSAM/(SSAM-1)))*1000)
+21020 Mmean = INT(MS/SSAM*1000)
+21030 Mnoise = INT(SQR(Mmean))
+21040 RETURN
+30000 ' print
+30010 PRINT#8,B$:PRINT#4,B$:PRINT B$
+30020 RETURN
+31000 ' print
+31010 PRINT#8,B$;:PRINT#4,B$;:PRINT B$;
+31020 RETURN
+32000 ' make time relative to BS in min
+32010 B$=RIGHT$("   "+STR$(INT((TIMER/60-BS)*10)/10),5)
+32020 RETURN
+65529 REM proper last line

@@ -1,0 +1,11 @@
+10000 REM ************ endday.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM     MKII/MKIII/MKIV: Ends Command Sequence to Summarize Data
+10002 REM
+10003 REM
+10004 REM ***************************************************************
+10005 DATA endday
+14000 JD$=JD$(1):YF$=YF$(1):DC$=DC$(1):A$=LEFT$(G$(1),7)
+14010 IF A$="end_day" THEN JJ=0
+14030 RETURN
+65529 REM dummy last line

@@ -1,0 +1,50 @@
+10000 REM ************ sa.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM              MKII/MKIII/MKIV Solar and Lunar Angles
+10002 REM
+10004 REM **************************************************************
+10005 DATA sa
+10010 PRINT CL$
+10020 PRINT "This routine calculates Solar and Lunar angles and MU values for"
+10030 PRINT "the current Brewer location and GMT day.":PRINT
+10040 PRINT "Calculations are in user defined increments over the time "
+10050 PRINT "period selected.":PRINT
+10100 INPUT "Enter starting GMT hour (hh) ";H1:Y=H1
+10110 INPUT "Enter ending GMT hour   (hh) ";H2
+10120 INPUT "Enter time increment    (mm) ";Z
+10125 INPUT "Enter comments       (25 ch) ";CC$:PRINT
+10130 INPUT "Output to printer or screen only (P/S) ";P$
+10500 T0=H1*60:H3=H2*60:X=0:P=0
+10502 IF P$="p" OR P$="P" THEN P=1
+10504 IF P=0 THEN 10518
+10505 PRINT#4,CHR$(10)
+10510 PRINT:PRINT"     Adjust paper and press Return to continue":PRINT
+10515 IF INKEY$<>"" THEN 10518 ELSE 10515
+10518 IF P=0 THEN 11005
+10520 PRINT#4,"      SOLAR AND LUNAR ANGLES AND MU VALUES"
+10521 PRINT#4,"      ------------------------------------":PRINT#4,
+10522 PRINT#4,"LOCATION : ";LO$;"  lat: ";LA;"  long: ";LO;"  press: ";PZ%
+10526 PRINT#4,
+10530 PRINT#4,"JULIAN DAY :";JD%;"   DATE : "MO$;"/";DA%;"/";YE%;"  ";CC$
+10580 PRINT#4,
+10600 PRINT#4,"TIME (GMT)    SOLAR ZA     SOLAR MU        LUNAR ZA     LUNAR MU   %Moon   AZ-step"
+10620 PRINT#4,
+11005 PRINT"JULIAN DAY :";JD%;"   DATE : "MO$;"/";DA%;"/";YE%;"  ";CC$
+11010 PRINT"TIME (GMT)    SOLAR ZA     SOLAR MU     LUNAR ZA     LUNAR MU    %Moon   AZ-step"
+11011 PRINT
+11020 FLAG=1:GOSUB 7810
+11030 ZN=ZA:MS$=STR$(M2):IF ZN>90 THEN MS$=" "
+11035 FLAG=2:GOSUB 7810: GOSUB 5730
+11040 ZM=ZA:MM$=STR$(M2):IF ZM>90 THEN MM$=" "
+11050 PRINT Y;":";X,ZN,MS$,ZM,MM$,int((-abs(Moon.Age-0.5)+0.5)*200), AZC%
+11055 IF P=0 THEN GOTO 13040
+11060 PRINT#4,Y;":";X,ZN,MS$,ZM,MM$,int((-abs(Moon.Age-0.5)+0.5)*200), AZC%
+13040 IF INKEY$<>"" THEN 16000
+13050 X=X+Z:IF X>59.999 THEN X=0
+13055 IF X=0 THEN Y=Y+1
+13060 T0=T0+Z:IF T0>H3 THEN 15090
+13080 GOTO 11020
+15090 IF P=1 THEN PRINT#4,CHR$(12):GOTO 16000
+15095 INPUT "PRESS RETURN TO CONTINUE ";C
+16000 RETURN
+65529 REM proper last line

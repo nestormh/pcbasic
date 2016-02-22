@@ -78,6 +78,7 @@ def parse_statement():
             ins.read(1)
             # line number marker, new statement
             linenum = util.parse_line_number(ins)
+            print "linenum", linenum
             if linenum == -1:
                 if state.basic_state.error_resume:
                     # unfinished error handler: no RESUME (don't trap this)
@@ -507,7 +508,13 @@ def exec_on_com(ins):
     """ ON COM: define serial port event trapping. """
     keynum, jumpnum = parse_on_event(ins)
     keynum = vartypes.pass_int_unpack(keynum)
+    print "keynum", keynum
+    print "jumpnum", jumpnum
     util.range_check(1, 2, keynum)
+    print type(state)
+    print type(state.basic_state)
+    print type(state.basic_state.events)
+    print type(state.basic_state.events.com[0])
     state.basic_state.events.com[keynum-1].set_jump(jumpnum)
 
 ##########################################################
@@ -710,9 +717,14 @@ def exec_calls(ins):
 
 def exec_out(ins):
     """ OUT: send a byte to a machine port. Limited implementation. """
+    print "exec_out"
+    print ins
+    print type(ins)
     addr = vartypes.pass_int_unpack(expressions.parse_expression(ins), maxint=0xffff)
     util.require_read(ins, (',',))
     val = vartypes.pass_int_unpack(expressions.parse_expression(ins))
+    print "addr", hex(addr)
+    print "val", val
     util.range_check(0, 255, val)
     machine.out(addr, val)
     util.require(ins, tk.end_statement)

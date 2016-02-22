@@ -1,0 +1,149 @@
+10000 REM ************ rs.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM             MKII/MKIII/MKIV Run-Stop Test Routine
+10020 REM
+10030 REM               (Sci-Tec Instruments, July 1998), IOS, 2003
+10040 REM
+10050 REM  See also:
+10060 REM ****************************************************************
+10070 REM
+10080 REM  This routine performs a run-stop test, insuring that slit mask
+10090 REM  operation is normal.
+10100 REM
+10110 REM  Side Effects:
+10120 REM
+10130 REM  Global Variables Used:
+10140 REM    CL$ DA$ DD$ JD$ LO% MDD$ MP$ NO$ NOFW1 OZFW1 POFW2
+10150 REM    R$ SP SPACE$ TIME$ YE$ YF$
+10160 REM
+10170 REM  Exits:  10610, 10750, 11220
+10180 REM
+10190 REM  Uses:   2450, 3100, 6610, 6650, 6660, 6700, 6800, 6900, 7000,
+10200 REM          7050, 8000, 8600, 9650, 9670, 9710, 9820, 9840, 9860,
+10210 REM          9900
+10220 REM
+10250 REM ****************************************************************
+10260 REM  History: dd/mm/yy
+10265 REM  27/11/03 - Save the result into b-file
+10270 REM  17/07/98 - Lamp turned off on abort
+10280 REM  10/05/94 - New Header, comments added, line numbers cleaned up
+10300 REM ****************************************************************
+10500 DATA rs
+10600 '
+10601 ' *** Slit Mask Run/stop Test ***
+10602 GOSUB 35000: DIM RS.BFILE(40):'
+10610 GOSUB 13500:IF LO%=1 THEN GOSUB 9840:GOSUB 35000:RETURN
+10620 GOSUB 6800:GOSUB 9670
+10630 GOSUB 8000
+10700 '
+10701 ' ***
+10702 '
+10710 FOR II=1 TO 5:GOSUB 12000
+10720     FOR J=0 TO 7
+10730         K=J  : GOSUB 12500
+10740         K=7-J: GOSUB 12500
+10750         IF HF%<>0 THEN GOSUB 9840:GOSUB 35000:RETURN
+10760     NEXT
+10765 LOCATE 8, 5: PRINT USING "#.#! "; S(2)/II/5*2/IT/1.0E6; "M";:FOR J=0 to 7: PRINT USING "##.### "; 6.0*S(J)/5.0/(S(J+8)+0.01);:NEXT
+10770 NEXT : GOSUB 12000
+10800 '
+10801 ' ***
+10802 '
+10810 PRINT#4,:PRINT#4,MDD$+" RUN/STOP TEST AT ";TIME$;", ";MP$;DA$;", ";YE$
+10820 PRINT#4,"         ";:FOR I=0 TO 7:PRINT#4,"     ";I;:NEXT:PRINT#4,
+10830 PRINT#4,"    RUN";
+10840 FOR I=0 TO 7
+10850     PRINT#4,RIGHT$("        "+ STR$(S(I)),8);:RS.BFILE(I)=S(I)
+10860 NEXT:PRINT#4,:PRINT#4,"    STOP";
+10870 FOR I=0 TO 7
+10880     PRINT#4,RIGHT$("        "+ STR$(S(I+8)),8);:RS.BFILE(I+8)=S(I+8)
+10890 NEXT:PRINT#4,
+10900 FOR I=2 TO 6
+10910     S(I)=S(I)-S(1)
+10920 NEXT
+10930 FOR I=10 TO 14
+10940     S(I)=S(I)-S(9)
+10950     IF S(I)<=0 THEN S(I)=1
+10960 NEXT
+10970 IF S(9)=0 THEN S(9)=1
+10980 PRINT#4,"RUN/STOP";
+10990 FOR I=0 TO 7
+11000     ZZ$=RIGHT$("         "+ STR$( INT(S(I)/S(I+8)*10000+.5)/10000),8)
+11010     PRINT#4, ZZ$;:RS.BFILE(I+16)=INT(S(I)/S(I+8)*10000+.5)/10000
+11020     VAR$(I)=ZZ$
+11030 NEXT
+11040 PRINT#4,:PRINT#4,
+11050 FOR I=2 TO 4
+11060     S(I)=LOG(S(5)/S(I))/LOG(10)
+11070 NEXT
+11080 S(5)=LOG(S(6)/S(5))/LOG(10)
+11090 S(8)=.1*S(2)-.59*S(3)+.11*S(4)+.82*S(5)
+11100 S(6)=S(2)-3.2*S(5):S(7)=S(3)-.5*S(4)-1.7*S(5):PRINT#4," ratios(run) ";
+11110 FOR I=2 TO 8
+11120     PRINT#4,RIGHT$("      "+ STR$( INT(S(I)*10000+.5)/10000),9);:RS.BFILE(I+22)=INT(S(I)*10000+.5)/10000
+11130 NEXT:PRINT#4,
+11140 FOR I=2 TO 4
+11150     S(I)=LOG(S(13)/S(I+8))/LOG(10):NEXT:S(5)= LOG(S(14)/S(13))/LOG(10)
+11160     S(8)=.1*S(2)-.59*S(3)+.11*S(4)+.82*S(5)
+11170     S(6)=S(2)-3.2*S(5):S(7)=S(3)-.5*S(4)-1.7*S(5):PRINT#4," ratios(stop)";
+11180 FOR I=2 TO 8
+11190     PRINT#4, RIGHT$("      "+ STR$( INT(S(I)*10000+.5)/10000),9);:RS.BFILE(I+29)=INT(S(I)*10000+.5)/10000
+11200 NEXT:PRINT#4,
+11210 IF INSTR("dt rs sl",G$(JJ+1))=0 THEN GOSUB 9840
+11215 PRINT#4,R$;"****************************"
+11220 GOSUB 32010 :GOSUB 35000:RETURN
+12000 '
+12001 ' ***
+12002 '
+12010 WL$=""+"0":WU$=""+"7":CZ$=""+"5":GOSUB 9710:GOSUB 9900
+12020 FOR J=0 TO 7
+12030    S(J)=S(J)+F(J)
+12040 NEXT
+12050 RETURN
+12500 '
+12501 ' ***
+12502 '
+12510 WL$=STR$(K):WU$=WL$:CZ$=""+"3":GOSUB 9710:GOSUB 9900
+12520 S(K+8)=S(K+8)+F(K):RETURN
+13000 '
+13001 ' *** Filter Positions, Prism Rotation, Lamp Warm-Up ***
+13002 '
+13010 GOSUB 6610:IF MDD$="n2" THEN M4$=STR$(NOFW1) ELSE M4$=STR$(OZFW1)
+13020 GOSUB 6660:IF MDD$="o3" THEN M5$=STR$(POFW2) ELSE M5$=STR$(POFW2+64):REM     Make NOFW2 an instrument constant!
+13030 GOSUB 6650:GOSUB 9860:GOSUB 6700:TD=1500:GOSUB 7000:'  set wait time
+13040 LOCATE ,SP:PRINT "4 - Rotate director prism to lamps":GOSUB 9650
+13050 T0=TA/3600:GOSUB 8600
+13060 PRINT CL$
+13070 LOCATE , SP:PRINT "Waiting until ";H$;" for lamp warmup":GOSUB 6900
+13080 RETURN
+13500 '
+13501 ' *** Turn Standard Lamp On, Get Temperature ***
+13502 '
+13510 IF M9$<>"2" THEN GOSUB 9820      'Standard Lamp On
+13520 GOSUB 2450                       'Get Brewer Temperature
+13530 GOSUB 13000
+13540 RETURN
+32000 '
+32010 ' *** verify to append once a day into average file
+32014 '
+32015 A1$(IO)=R$+"rs"+MDD$+CR$+MP$+CR$+DB$+CR$+YE$+CR$+TIME$+CR$+STR$(TE%)
+32016 FOR I=0 TO 20:A1$(IO)=A1$(IO)+CR$+ STR$(RS.BFILE(I)):NEXT I:
+32017 IO=IO+1:A1$(IO)=STR$(RS.BFILE(21))+CR$
+32018 FOR I=22 TO 37:A1$(IO)=A1$(IO)+ STR$(RS.BFILE(I))+CR$:NEXT I
+32019 A1$(IO)=A1$(IO):IO=IO+1:GOSUB 3225:
+32020 ON ERROR GOTO 32150
+32030 AVGFILE$="RSOAVG"
+32040 IF MDD$="n2" THEN AVGFILE$="RSNAVG"
+32050 OPEN DD$+AVGFILE$+"."+NO$ FOR APPEND AS #6
+32060 PRINT#6,JD$+YF$;
+32070 FOR I=0 TO 7
+32080     IF LEN(VAR$(I)) < 10 THEN VAR$(I)=SPACE$(10-LEN(VAR$(I)))+VAR$(I)
+32090     PRINT#6," "; VAR$(I);
+32100 NEXT I
+32110 PRINT#6,
+32120 '
+32130 CLOSE 6
+32140 ON ERROR GOTO 3100 : RETURN
+32150 IF ERR = 53 AND ERL = 32050 THEN RESUME 32050 ELSE RESUME 32140
+35000 RS.BFILE(1)=0: ERASE RS.BFILE: PRINT FRE(0), FRE(""): RETURN
+65529 DATA proper last line

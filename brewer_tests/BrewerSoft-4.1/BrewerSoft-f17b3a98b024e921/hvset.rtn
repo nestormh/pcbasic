@@ -1,0 +1,47 @@
+10000 REM ************ hvset.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM         MKII/MKIII/MKIV Set the High Voltage Point
+10020 REM
+10030 REM            (Sci-Tec Instruments, November 1996)
+10040 REM
+10050 REM *************************************************************
+10060 REM
+10070 REM  This routine automates the setting of the (previously
+10080 REM  determined via HV.RTN) high voltage point.
+10090 REM
+10200 REM  Side Effects:
+10210 REM
+10220 REM  Global Variables Referenced:
+10230 REM    SP  TD
+10240 REM    CZ$ M5$ NO$ O1$ WL$ WU$
+10250 REM    HF%
+10260 REM
+10270 REM  Exits: 14010
+10280 REM
+10290 REM  Uses: 2000, 9450
+10300 REM
+10500 REM *************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  29/11/96 - New routine, new firmware only
+10530 REM *************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA hvset
+11020 IF Q14%=0 THEN RETURN
+11030 PRINT CL$;"Set High Voltage Operating Point"
+11040 LOCATE ,SP:PRINT "Please wait... testing range";
+11050 O1$="HVADJUST -100":GOSUB 9450:X=5:GOSUB 7220:PRINT ".";
+11060 O1$="?ANALOG.NOW[3]":GOSUB 9450:VL$=MID$(STR$(VA*2.0043+9.653),2)
+11070 O1$="HVADJUST 90":GOSUB 9450:X=5:GOSUB 7220:PRINT "."
+11080 O1$="?ANALOG.NOW[3]":GOSUB 9450:VU$=MID$(STR$(VA*2.0043+9.653),2)
+11090 O1$="HVADJUST -100":GOSUB 9450:X=5:GOSUB 7220:PRINT "."
+11100 LOCATE ,SP:PRINT"Range is ";VL$;" to ";VU$
+11110 LOCATE ,SP:PRINT"Enter HV setpoint: ";:GOSUB 2000:VI=VAL(B$)
+11120 I=(VI-VAL(VL$))*90/(VAL(VU$)-VAL(VL$)):O1$="HVADJUST"+STR$(INT(I)):GOSUB 9450
+11130 LOCATE ,SP:PRINT"Done"
+14000 '
+14001 ' *** Clean Up and Exit ***
+14002 '
+14010 RETURN
+65529 REM proper last line

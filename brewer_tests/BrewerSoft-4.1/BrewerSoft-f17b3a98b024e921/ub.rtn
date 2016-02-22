@@ -1,0 +1,167 @@
+10000 REM ************ ub.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM             MKII/MKIII/MKIV DUV Summary for the Day
+10020 REM                 
+10030 REM              (SCI-TEC Instruments, October 1995)
+10040 REM  
+10050 REM  See Also:
+10060 REM ****************************************************************
+10070 REM
+10080 REM  This routine takes the uvdddyy.### file created for the day
+10090 REM  and re-calculates the DUV values for each scan in the file.
+10100 REM  The individual DUV results are printed and the daily integral
+10110 REM  value is appended to the uvoavg.### file.
+10120 REM
+10220 REM  Global Variables Referenced:
+10230 REM    IT M2 T0 T1 TI ZA Q10%
+10240 REM    DC$ DD$ H$ JD$ L0$ L1$ L2$ NO$ UVR$ YF$
+10250 REM
+10260 REM  Exits: 11050, 15030, 30030, 30530, 30630, 31020
+10270 REM
+10280 REM  Uses:  3100, 7220, 7700, 7800, 8600, 9650, UV response file
+10290 REM
+10500 REM ****************************************************************
+10510 REM  History: dd/mm/yy
+10520 REM  27/09/95 - Supports all Brewer and response file types
+10530 REM  21/07/95 - Fixed bug in MKIII DUV calculation; handles non-X
+10540 REM  range MKIV's
+10550 REM  12/01/95 - Uses UVR$ for response file name (from \nnn dir)
+10560 REM  19/12/94 - Rewritten by TM; combines UFSUM, UVSUM, UXSUM
+10570 REM  10/05/94 - New and Old Temperature circuits handled (Q10%)
+10580 REM ****************************************************************
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA uvsum
+11020 TOBS=0:OOBS=0:REM  total/ozone observations
+11030 TT(1)=1:UR(1)=1:ERASE TT,UR:DIM TT(200),UR(170)
+11040 T9=T1:D2=-1
+11050 IF TYP$="mkii" OR ZERO=3469 THEN XR=0 ELSE XR=1
+12000 '
+12001 ' *** Open Data Summary File and Print Header for Summary ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"UV"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12030 CLOSE 8:ON ERROR GOTO 30500
+12035 UR(1)=1:ERASE UR:DIM UR(170):I=2
+12040 OPEN DD$+NO$+"\"+UVR$+"."+NO$ FOR INPUT AS 8
+12050 INPUT#8,SWV,UR(1)
+12060 INPUT#8,WV,UR(I):I=I+1:IF NOT(EOF(8)) THEN 12060
+12070 ON ERROR GOTO 31000
+12500 CLOSE 8:OPEN DD$+"UV"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12510 PRINT#4,CHR$(12):PRINT CL$:PRINT "Position paper to top of page":GOSUB 9650
+12520 PRINT#4,"Summary of Brewer UVB scan measurements for ";DC$;" (";JD$;")"
+12530 PRINT#4,:PRINT#4,"Measurements made at ";LO$;" with instrument # ";NO$
+12540 PRINT#4,USING "     Latitude       = \        \     Longitude      = \        \";L1$;L2$
+12550 PRINT#4,
+12560 PRINT#4,"Type Time(GMT)  Temp  Airmass   Zenith Angle  DUV(mW/m^2)"
+12570 PRINT#4,
+13000 '
+13001 ' *** Process Any UVB Scan Data ***
+13002 '
+13010 S5=0:Z2=0:X$="uv"
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$:IF INSTR(A$,"dt")<>0 THEN T9=T1:T1=VAL(RIGHT$(A$,LEN(A$)-2))
+13120   IF INSTR(A$,"cy")<>0 THEN CX$=RIGHT$(A$,LEN(A$)-2):CY=VAL(CX$)
+13130   IF LEFT$(A$,1)="u" THEN X$=LEFT$(A$,2)
+13140   IF INSTR(A$,"dh")=0 THEN 13100
+13150   TOBS=TOBS+1:S1=0:S2=0:S3=0:S4=0
+13160   INPUT#8,A$,A$,A$,A$,A$,A$,TQ,A$,A$,A$
+13170   IF Q10%=1 THEN TQ=-33.27+TQ*18.64 ELSE TQ=-30+TQ*16+.5
+13180   EZ%=0:IF XR=1 AND (X$="ua" OR X$="ux") AND UR(150)=0 THEN 13000
+13200   EZ%=EZ%+1
+13210     IF NOT(EOF(8)) THEN INPUT#8,T0,WV,SN,VA:DL=.5
+13220     IF WV=3250 THEN TT(TOBS)=T0/60    'DUV time
+13230     GOSUB 20000
+13240   IF (WV<3630 AND (X$="ux" OR (X$="ua" AND XR=1))) OR WV<3250 THEN 13200
+13250   T0=TT(TOBS)*60:Z1=Z2:Z2=T0:TI=T0*3600
+13260   IF Z2<Z1 THEN Z2=Z2+1440
+13270   GOSUB 8600              'convert T0 to hhmmss
+13280   GOSUB 7700:FLAG=3:GOSUB 7800        'airmass (M2)
+13300   IF X$<>"uv" THEN 13400
+13310     INPUT#8,A$,A$
+13320     FOR I=EZ% TO 1 STEP -1:INPUT#8,T0,WV,SN,VA:DL=.5:GOSUB 20000:NEXT I
+13400   IF S1=0 THEN NL=0 ELSE NL=S2/S1     'noise level
+13410   DV=S3-S4*NL:IF X$="uv" THEN DV=DV/2 'average up/down if available
+13420   D1=D2:D2=DV:PRINT#4,X$;"  ";RIGHT$("  "+H$,10);
+13430   PRINT#4,USING "  ###  ####.###    ####.##    ####.###";TQ;M2;ZA;DV
+13440   IF D1>0 THEN S5=S5+(D1+.5*(D2-D1))*(Z2-Z1)
+13450   GOTO 13100
+14000 '
+14001 ' *** Close File and Print Out Data ***
+14002 '
+14010 CLOSE 8:GOSUB 22000:GOSUB 23000
+14040 PRINT#4,USING "     ###  observations.";TOBS:GOTO 15000
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 T1=T9:FLAG=1:GOSUB 7800:ON ERROR GOTO 3100:ERASE TT,UR
+15020 RETURN
+20000 '
+20001 ' *** Correct Raw Counts and Convert to Counts/Sec ***
+20002 '
+20010 GOSUB 8350                    'Correct dark/dead
+20020 IF WV<=2920 THEN S1=S1+1:S2=S2+VA         'Accumulate noise level
+20030 DV=1                      'Calculate Diffey correction
+20040 IF WV>2980 THEN DV=10^(9.399999E-02*(2980-WV)/10)
+20050 REM
+20062 IF WV=3240 AND (X$="uf" OR X$="uv" OR (X$="ua" AND XR=0)) THEN DV=0.148 'Add on UV-A correction
+20064 IF WV>3290 THEN DV=10^(1.5e-02*(1390-WV)/10)  'CIE (UX/UA only)
+20066 IF WV=3565 THEN DV=0.027              'estimated CIE to 4000
+20070 X=(WV-SWV)/5+1:IF X>170 OR X<0 THEN RETURN ELSE IF UR(X)=0 THEN RETURN
+20080 S3=S3+DL*DV*VA/UR(X):S4=S4+DL*DV/UR(X):RETURN 'Accumulate sums if valid UR() data
+22000 '
+22001 ' *** Print Daily Mean Values ***
+22002 '
+22010 TY=0:S5=S5*60/1000    'J/m^2
+22020 FOR I=1 TO TOBS
+22030   IF TT(I) < TT(1) THEN TT(I)=TT(I)+24
+22040   TY=TY+TT(I)
+22050 NEXT I:IF TOBS>0 THEN TY=INT((TY/TOBS)+0.5)
+22060 DA=TT(TOBS)-TT(1)
+22070 PRINT#4,
+22080 PRINT#4,USING "    Daily integral:                       ######.## Joules/m^2";S5
+22090 T1=T9
+22100 RETURN
+23000 '
+23001 ' *** Add Daily Mean Values to Ozone Average File ***
+23002 '
+23010 ON ERROR GOTO 32000
+23020 AVGFILE$="UVOAVG"
+23100 CLOSE 6:OPEN DD$+AVGFILE$+"."+NO$ FOR APPEND AS #6
+23110   REM  integrated DUV  DA  obs  TY
+23120   PRINT#6,JD$;YF$;" ";
+23130   PRINT#6,USING "  ####.#  ###  ###  ###";S5;DA;TOBS;TY
+23140 CLOSE 6
+23200 ON ERROR GOTO 31000
+23210 RETURN
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No UV data file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:ERASE TT,UR:RETURN
+30500 '
+30501 ' *** Error Handler on Lack of Response File ***
+30502 '
+30510 PRINT "No response file available."
+30520 RESUME 30530
+30530 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:ERASE TT,UR:RETURN
+30600 '
+30601 ' *** Error Handler on Bad Response File Format ***
+30602 '
+30610 PRINT "Error reading response file."
+30620 RESUME 30630
+30630 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:ERASE TT,UR:RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 IF ERR<24 OR ERR>27 THEN ERASE TT,UR
+31020 GOTO 3100
+32000 '
+32001 ' *** Error Handler for Average File ***
+32002 '
+32010 IF ERR=53 AND ERL=23040 THEN RESUME 23100
+32020 IF ERR=53 AND ERL=24040 THEN RESUME 24100
+32030 GOTO 31000
+65529 REM proper last line

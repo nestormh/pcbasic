@@ -1,0 +1,30 @@
+10000 REM ************ cs.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM               Command Sequence Set Up Routine
+10002 REM
+10003 REM
+10004 REM **************************************************************
+10005 DATA cs
+14000 REM -14199 set up command sequences
+14010 CLS:PRINT CL$:LOCATE 6,SP:PRINT "how many commands (<10)? ";
+14020 GOSUB 2000:QC=VAL(B$)
+14030 FOR I=1 TO QC
+14035 CLS:PRINT CL$
+14040 LOCATE 6,SP:PRINT "Enter command # ";I;" ";:GOSUB 2000:G$(I)=B$
+14050 NEXT 
+14060 CLS:PRINT CL$:LOCATE 6,SP:PRINT "How many times to repeat sequence? ";
+14070 GOSUB 2000:QR=VAL(B$)
+14075 CLS:PRINT CL$
+14080 LOCATE 6,SP:PRINT "Check commands:"
+14085 LOCATE ,SP:PRINT "You want ";QC;" commands"+CR$
+14090 FOR I=1 TO QC
+14100 LOCATE ,SP:PRINT "Command # ";I;" is ";G$(I)
+14110 NEXT 
+14115 LOCATE ,SP-2:PRINT "Sequence to be repeated ";QR;" times"
+14120 LOCATE ,SP-4:PRINT "Is this all correct? (y/n)";
+14130 A$=INKEY$:IF A$="" THEN 14130
+14135 IF A$="Y" THEN 14150
+14140 IF A$<>"y" THEN 14010
+14150 RM%=1:GOTO 3400
+65529 REM dummy last line
+                                                                      

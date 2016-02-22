@@ -1,0 +1,485 @@
+SYNOPSIS
+
+pcbasic [program|package [output]] [OPTION] ...
+
+POSITIONAL ARGUMENTS
+
+program
+	If a .BAS program is specified as the first positional argument, it
+	will be run. The --run, --load and --convert options override this
+	behaviour.
+
+package
+	If a zipfile package or directory is specified as the first positional
+	argument, any contained configuration file PCBASIC.INI will be loaded;
+	usually, it will run a program file in the package. All other command-
+	line options will override the package configuration file, note in
+	particular the potential of the --run, --load and --convert options to
+	alter the behaviour of the package.
+
+output
+	If a second positional argument is specified, it sets the output file
+	for file format conversion. This argument is ignored unless the
+	--convert option is given.
+
+OPTIONS
+
+--allow-code-poke[=True|=False]
+	Allow programs to POKE into code memory.
+
+--altgr[=True|=False]
+	If True (default), interpret the right Alt key as Alt Gr instead of
+	Alt. The left Alt key is always seen as Alt.
+
+--append[=True|=False]
+	If used with --output=output_file, the output_file is appended to
+	rather than overwritten.
+
+--aspect=x,y
+	Set the display aspect ratio to x:y. Only has an effect if combined
+	with --interface=graphical.
+
+-b
+	Use the command-line interface. This is identical to --interface=cli.
+
+--border=width
+	Set the width of the screen border as a percentage from 0—100. The
+	percentage refers to the total width of the borders on both sides as a
+	fraction of the usable screen width. Only has an effect if combined
+	with --interface=graphical.
+
+--caption=title
+	Set the title bar caption of the PC-BASIC window. Default title is PC-
+	BASIC.
+
+--capture-caps[=True|=False]
+	Let PC-BASIC handle the Caps Lock key. This may or may not interfere
+	with the operating system's own handling of that key. Only has an
+	effect if combined with --interface=graphical.
+
+--cas1=type:value[:loc]
+	Attach a resource to the CAS1: cassette device and wind the virtual
+	tape to loc seconds. type:value can be
+
+	WAV:wav_file
+		Connect to the RIFF Wave file wav_file with data modulated in IBM PC
+		cassette format.
+
+	CAS:cas_file
+		Connect to the PCE/PC-BASIC CAS tape image cas_file.
+
+	BC:wav_file
+		Connect to the RIFF Wave file wav_file with data modulated in BASICODE
+		format.
+
+--cga-low[=True|=False]
+	Use low-intensity palettes in CGA modes. Only has an effect if
+	combined with --video={cga|cga_old|ega|vga}.
+
+--codepage=codepage_id
+	Load the specified codepage. The codepage determines which characters
+	are associated to a given character byte or, in the case of double-
+	byte codepages, two character bytes. The available codepages are
+	stored in the codepage/ directory. See the list of default available
+	codepages in the User's Guide.
+
+--config=config_file
+	Read a configuration file. The system default configuration is always
+	read first, but any preset group of options in a configuration file
+	replaces the whole equivalent default preset group.
+
+--com1=type:value
+	Attach a resource to the COM1: serial device. type:value can be one of
+	the following.
+
+	PORT:device_name
+		Connect to a serial device. device_name can be a device name such as
+		COM1 or /dev/ttyS0 or a number, where the first serial port is number
+		0.
+
+	SOCKET:host:socket
+		Connect to a TCP socket on a remote or local host.
+
+	STDIO[:[CRLF]]
+		Connect to standard I/O of the calling shell. If CRLF is specified,
+		PC-BASIC replaces CR characters with LF on its output and LF with CR
+		on its input. This is more intuitive on Unix shells. When using a Unix
+		console, you should use stty -icanon to enable PC-BASIC to read input
+		correctly.
+
+	If this option is not specified, the COM1: device is unavailable.
+
+--com2=type:value
+	Attach a resource to the COM2: serial device. See --com1.
+
+--convert={A|B|P}
+	Convert program to one of the following formats:
+
+	A
+		ASCII
+
+	B
+		Bytecode (tokenised)
+
+	P
+		Protected (encrypted)
+
+	If output is not specified, write to standard output. If program is
+	not specified, use the argument of --run or --load. If none of those
+	are given, read from standard input. Overrides --resume, --run and
+	--load.
+
+--copy-paste=copy_button,paste_button
+	Choose the mouse buttons for clipboard operations. copy_button and
+	paste_button are chosen from left,middle,right,none.
+
+--ctrl-c-break[=True|=False]
+	If False, follow GW-BASIC behaviour where Ctrl+C breaks AUTO and INPUT
+	but not program execution or LIST. If True, treat Ctrl+C exactly like
+	Ctrl+Break and Ctrl+Scroll Lock when --interface=graphical. With
+	--interface={text|cli}, Ctrl+C is always treated like Ctrl+Break.
+	Default is True.
+
+--current-device={CAS1|@|A|B ... |Z}
+	Set the current device to the indicated PC-BASIC drive letter or CAS1
+	for the cassette device. The device chosen should be mounted to an
+	actual location using --mount (or --cas1 if the cassette device is
+	chosen). Default is Z, with the Z: device mounted to your current
+	drive.
+
+--dimensions=x,y
+	Set window dimensions to x by y pixels. This overrides
+	--scaling=native and --aspect. Only has an effect if combined with
+	--interface=graphical.
+
+-d --double[=True|=False]
+	Enable double-precision transcendental math functions. This is
+	equivalent to the /d option in GW-BASIC.
+
+-e=command_line --exec=command_line
+	Execute BASIC command_line. The specified commands are executed before
+	entering into interactive mode or running a program.
+
+--font=font_name[,font_name ... ]
+	Load current codepage from specified font_name.hex fonts. The last
+	fonts specified take precedence, previous ones are fallback. Default
+	is unifont,univga,freedos (i.e. the freedos.hex font has preference).
+	The available fonts depend on what is stored in font/.
+
+--fullscreen[=True|=False]
+	Fullscreen mode. Only has an effect if combined with
+	--interface=graphical.
+
+-h --help
+	Show a usage message and exit.
+
+-i
+	This option is ignored. It is included only for compatibility with GW-
+	BASIC /i.
+
+--input=input_file
+	Retrieve keyboard input from input_file, except if KYBD: is read
+	explicitly. Input from KYBD: files is always read from the keyboard,
+	following GW-BASIC behaviour.
+
+--interface={none|cli|text|graphical}
+	Choose the type of interface. The following interface types are
+	available:
+
+	none
+		Filter for use with pipes. Also -n.
+
+	cli
+		Command-line interface. Also -b.
+
+	text
+		Text-based interface. Also -t.
+
+	graphical
+		Graphical interface.
+
+	The default is graphical.
+
+-k=keystring --keys=keystring
+	Insert the keystring into the keyboard buffer.
+
+-l=program --load=program
+	Start in interactive mode with the BASIC program loaded.
+
+--logfile=log_file
+	Write error and warning messages to log_file instead of stderr.
+
+--lpt1=type:value
+	Attach a resource to the LPT1: parallel device. type:value can be
+
+	PARPORT:device_name
+		Connect to the parallel device device_name such as LPT1 or
+		/dev/parport0.
+
+	PRINTER:printer_name
+		Connect to a Windows, LPR or CUPS printer. If printer_name is not
+		specified, the default printer is used.
+
+	FILE:file_name
+		Connect to any file or to a Unix character device such as /dev/stdout.
+
+	STDIO[:[CRLF]]
+		Connect to standard output of the calling shell. If CRLF is specified,
+		PC-BASIC replaces CR characters with LF on its output. This is more
+		intuitive on Unix shells.
+
+	If this option is not specified, LPT1: is connected to the default
+	printer.
+
+--lpt2=type:value
+	Attach a resource to the LPT2: parallel device. See --lpt1. If this
+	option is not specified, LPT2: is unavailable.
+
+--lpt3=type:value
+	Attach a resource to the LPT3: parallel device. See --lpt1. If this
+	option is not specified, LPT3: is unavailable.
+
+--map-drives[=True|=False]
+	On Windows, assign all Windows drive letters to PC-BASIC drive
+	letters. On other systems, assign to:
+
+	Z:
+		the current working directory
+
+	C:
+		the filesystem root
+
+	H:
+		the user's home directory.
+
+-f=number_of_files --max-files=number_of_files
+	Set maximum number of open files to number_of_files. This is
+	equivalent to the /f option in GW-BASIC. Default is 3.
+
+-m=max_memory[,basic_memory_blocks] --max-
+memory=max_memory[,basic_memory_blocks]
+	Set the maximum size of the data memory segment to max_memory and the
+	maximum size of the data memory available to BASIC to
+	basic_memory_blocks*16. In PC-BASIC, the minimum of these values is
+	simply the data memory size; the two values are allowed for
+	compatibility with the /m option in GW-BASIC.
+
+-s=record_length --max-reclen=record_length
+	Set maximum record length for RANDOM files to record_length. Default
+	is 128, maximum is 32767. This is equivalent to the /s option in GW-
+	BASIC.
+
+--monitor={rgb|composite|mono}
+	Sets the monitor type to emulate. Available types are:
+
+	rgb
+		RGB colour monitor (default).
+
+	composite
+		Composite colour monitor.
+
+	mono
+		Monochrome monitor.
+
+	On SCREEN 2 with --video={pcjr|tandy|cga|cga_old}, --monitor=composite
+	enables (crude) colour artifacts.
+
+--mono-tint=r,g,b
+	Specify the monochrome tint as the red-green-blue values r,g,b, each
+	in the range 0—255. Only has an effect if combined with
+	--monitor=mono.
+
+--mount=drive:path,[drive:path ... ]
+	Assign the path path to drive letter drive:. The path can be absolute
+	or relative. By default, Z: is assigned to the current working
+	directory and no other drive letters are assigned.
+
+-n
+	Run PC-BASIC as a command-line filter. Same as --interface=none.
+
+--nobox[=True|=False]
+	Disable box-drawing recognition for double-byte character set code
+	pages. By default, sequences of box-drawing characters are recognised
+	by an algorithm that isn't as smart as it thinks it is, and displayed
+	as box drawing rather than as DBCS characters. If --nobox is set, they
+	will be displayed as DBCS.
+
+--nokill[=True|=False]
+	Allow BASIC to capture Alt+F4. Graphical interface only. By default,
+	Alt+F4 is captured by most operating systems as a quit signal, and
+	will terminate PC-BASIC. Set --nokill to allow BASIC to capture Alt+F4
+	instead. This is useful if your program uses this key combination.
+
+--nosound[=True|=False]
+	Disable sound output.
+
+--output=output_file
+	Send screen output to output_file, except if SCRN: is written to
+	explicitly. Output to SCRN: files will always be shown on the screen,
+	as in GW-BASIC.
+
+--pcjr-term=terminal_program
+	Set the terminal program run by the PCjr TERM command to
+	terminal_program. This only has an effect with --syntax={pcjr|tandy}.
+
+--peek=[seg:addr:val[,seg:addr:val ... ]]
+	Define PEEK preset values. If defined, DEF SEG:? PEEK(addr) will
+	return val.
+
+--pen={left|middle|right|none}
+	Set the mouse button for light pen emulation. Default is left. If set
+	to none, light pen emulation is switched off. On Android, left means
+	touch input.
+
+--preset=option_block
+	Load machine preset options. A preset option corresponds to a section
+	defined in a config file by a name between square brackets, like
+
+	[this] --preset=this will load all settings defined in that section.
+	Available presets depend on your configuration file. See the list of
+	default presets in the User's Guide.
+
+--print-trigger={line|page|close}
+	Set the trigger to flush the print buffer to the printer.
+
+	line
+		The printer is activated after every line break.
+
+	page
+		The printer is activated after every page break.
+
+	close
+		The printer is activated only when PC-BASIC exits.
+
+	Default is close.
+
+-q --quit[=True|=False]
+	Quit interpreter when execution stops. If combined with --run, PC-
+	BASIC quits when the program ends. If set in interactive mode, PC-
+	BASIC quits after the first command is executed.
+
+--reserved-memory=number_of_bytes
+	Reserve number_of_bytes of memory at the bottom of the data segment.
+	For compatibility with GW-BASIC. Default is 3429 bytes. Lowering this
+	value makes more string and variable space available for use by
+	programs.
+
+--resume[=True|=False
+	Resume from saved state. Overrides --run and --load.
+
+-r=program --run=program
+	Run the specified program. Overrides --load.
+
+--scaling={smooth|crisp|native}
+	Choose scaling method.
+
+	smooth
+		The display is smoothly scaled to the largest size that allows for the
+		correct aspect ratio.
+
+	crisp
+		The display is scaled to the same size as with smooth, but without
+		smoothing.
+
+	native
+		Scaling and aspect ratio are optimised for the display's native pixel
+		size, without smoothing. --scaling=native overrides --aspect.
+
+	Default is smooth. Only has an effect if combined with
+	--interface=graphical.
+
+-c=size --serial-buffer-size=size
+	Set serial input buffer size. Default is 256. If set to 0, serial
+	communications are disabled.
+
+--shell={none|native|command]
+	Set the command interpreter run on the SHELL command to the operating
+	system's native shell or a custom shell run by command. Default is
+	none, which disables the SHELL command.
+
+--state=state_file
+	Set the save-state file to state_file. Default is PCBASIC.SAV in the
+	Application Data directory.
+
+--strict-hidden-lines[=True|=False]
+	Disable listing and ASCII saving of lines beyond 65530, as in GW-
+	BASIC. Use with care as this allows execution of hidden lines of code.
+
+--strict-newline[=True|=False]
+	Parse CR and LF in files strictly like GW-BASIC. On Unix, you will
+	need to convert your files to DOS text first if using this option.
+
+--strict-protect[=True|=False]
+	Disable listing and ASCII saving of protected files, as in GW-BASIC.
+	Use with care as this allows execution of hidden lines of code.
+
+--syntax={advanced|pcjr|tandy}
+	Choose BASIC dialect. Available dialects are:
+
+	advanced
+		Microsoft GW-BASIC and IBM BASICA
+
+	pcjr
+		IBM PCjr Cartridge BASIC
+
+	tandy
+		Tandy 1000 GW-BASIC.
+
+	Default is advanced.
+
+-t
+	Use text-based interface. Same as --interface=text.
+
+--text-width={40|80}
+	Set the number of columns in text mode at startup. Default is 80.
+
+--utf8[=True|=False]
+	Use UTF-8 for ASCII-mode programs. If True, programs stored as ASCII
+	will be converted from UTF-8 on LOAD and to UTF-8 on SAVE.
+
+-v --version
+	Print PC-BASIC version string and exit.
+
+--video=card
+	Set the video card to emulate. Available video cards:
+
+	vga
+		Video Graphics Array
+
+	ega
+		Enhanced Graphics Adapter
+
+	cga
+		Color/Graphics Adapter
+
+	cga_old
+		Color/Graphics Adapter (old version; affects composite)
+
+	mda
+		Monochrome Display Adapter
+
+	hercules
+		Hercules Graphics Adapter
+
+	pcjr
+		IBM PCjr graphics
+
+	tandy
+		Tandy 1000 graphics
+
+	olivetti
+		Olivetti M24 graphics
+
+	Default is vga.
+
+--video-memory=size
+	Set the amount of emulated video memory available. This affects the
+	number of video pages that can be used. On PCjr and Tandy, this can be
+	changed at runtime through the CLEAR statement; at least 32768 needs
+	to be available to enter SCREEN 5 and SCREEN 6. Default is 16384 or
+	PCjr and Tandy and 262144 on other machine presets.
+
+-w --wait[=True|=False]
+	If True, PC-BASIC waits for a keystroke before closing the window on
+	exit. Only works for --interface=graphical or --interface=text.
+	Default is False.

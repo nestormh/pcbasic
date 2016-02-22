@@ -1,0 +1,11 @@
+10000 REM ************ pc.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM                     Restart Command
+10002 REM
+10003 REM                     by Martin Stanek
+10004 REM **************************************************************
+10005 DATA pc
+14020 CLS:run
+14120 RETURN
+14299 :
+65529 REM *** dummy line ***

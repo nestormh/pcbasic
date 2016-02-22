@@ -1,0 +1,69 @@
+10000 REM ************ sh.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10001 REM            MKII/MKIII/MKIV Motor Timing Test
+10002 REM
+10003 REM *************************************************************
+10004 REM  History: dd/mm/yy
+10005 REM  22/06/10 - Removed input menu, now has standard options for old or new electronics + extra SH-test.nnn file.
+10006 REM *************************************************************
+10008 DATA sh
+15600 GOSUB 9820
+15610 PRINT CL$
+15620 IF Q14%=1 THEN 15640
+15630 TL=40:TU=160:DT=4:GOTO 15670 REM Constants for multi board Brewers, TL is minimum time, TU is maximum time and DT is increment. All units in nanometers.
+15640 TL=2:TU=60:DT=2:GOTO 15670 REM Constants for multi board Brewers
+15670 GOSUB 17500:IF LO%=1 THEN RETURN 
+15675 GOSUB 6800
+16010 '  Setting up D file info
+16020 PRINT#4,
+16030 PRINT#4,MDD$+" Slit mask motor timing test at ";TIME$;", ";MP$;DA$;", ";YE$
+16040 PRINT#4,
+16050 PRINT#4,"           Delay             Cal            Dark    Wavelength 1
+16060 PRINT#4,
+16100 ' Setting up SH-test info
+16110 CLOSE 8:OPEN DD$+"SH-TEST."+NO$ FOR APPEND AS 8
+16120 PRINT#8,
+16130 PRINT#8,MDD$+" Slit mask motor timing test at ";TIME$;", ";MP$;DA$;", ";YE$
+16140 PRINT#8,
+16150 PRINT#8,"           Delay             Cal            Dark    Wavelength 1
+16160 PRINT#8,
+16200 ' Setting up screen info
+16210 PRINT CL$
+16220 LOCATE 4,1:PRINT,
+16230 LOCATE 5,1:PRINT,MDD$+" Slit mask motor timing test at ";TIME$;", ";MP$;DA$;", ";YE$
+16240 LOCATE 6,1:PRINT,
+16250 LOCATE 7,1:PRINT "        Delay             Cal            Dark    Wavelength 1
+16500 IF Q14%=1 THEN O1$="?MOTOR.MAX.VEL[11]":GOSUB 9450:WS=VA
+16510 FOR MI=TL TO TU STEP DT:IF HF%<>0 THEN MI=TU:GOTO 16810
+16520 O1$="L,18041,"+STR$(MI):IF Q14%=1 THEN O1$="!MOTOR.MAX.VEL[11]"+STR$(MI)
+16530 GOSUB 9450
+16700 WL$="0":WU$="2":CZ$="5":GOSUB 9880:GOSUB 9710
+16710 GOSUB 9900
+16720 ' Printing to screen and D, sh file
+16730 PRINT USING "     ########";MI;:
+16740 PRINT#8,USING "        ########";MI;:
+16750 PRINT#4,USING "        ########";MI;:
+16760 FOR I=0 TO 2:
+16770 PRINT USING "        ########";F(I);: 
+16780 PRINT#4,USING "        ########";F(I);:
+16790 PRINT#8,USING "        ########";F(I);:      
+16800 NEXT:PRINT,: PRINT#8,:Print#4,:
+16810 NEXT:PRINT,: PRINT#8,:Print#4,:
+16820 IF Q14%=0 THEN O1$="L,18041,"+DL$:GOSUB 9450
+16830 IF Q14%=1 THEN O1$="!MOTOR.MAX.VEL[11]"+STR$(WS):GOSUB 9450
+16840 CLOSE 8 'Clean up of SH-test file
+16850 GOSUB 9840:RETURN 
+17000 REM set up lamp for test
+17010 GOSUB 6610:GOSUB 6620:M5$="128":if mdd$="n2" then m5$="320"
+17020 GOSUB 6650:GOSUB 9860
+17030 GOSUB 6700:TD=TI+1500
+17040 LOCATE ,SP:PRINT "4 - Rotate director prism to lamps":GOSUB 9650
+17050 T0=TA/3600:GOSUB 8600
+17060 PRINT CL$
+17070 LOCATE ,SP:PRINT "Waiting until ";H$;" for lamp warmup":GOSUB 6900:RETURN 
+17080 O1$="R,1,1,1":GOSUB 9450:RETURN
+17500 REM -17599 measure standard lamp
+17510 IF M9$<>"2" THEN GOSUB 9820:REM lamp on
+17515 GOSUB 2450
+17520 GOSUB 17010:RETURN 
+65529 REM proper last line

@@ -1,0 +1,82 @@
+10000 REM ************ aodsum.rtn 02/12/2010 09:50:00 ************ 
+55555 REM Please keep line 10000 updated when changes are made. Volodya Savastiouk
+10010 REM       AOD Summary for the Day
+10020 REM
+10030 REM              (MSC Sep/2005)
+10040 REM
+10060 REM *************************************************************
+10070 REM
+10080 REM  This routine outputs a summary list of direct sun aerosol optical depth
+10090 REM  observations for the current day.
+10100 REM
+11000 '
+11001 ' *** Setup ***
+11002 '
+11010 DATA aodsum
+11020 I=1:
+11030 TOBS=0:OOBS=0:NOBS=0:REM  total/ozone/NO2 observations
+12000 '
+12001 ' *** Open Brewer Data File and Print Header for Summary ***
+12002 '
+12010 ON ERROR GOTO 30000:CLOSE 8
+12020 OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12030 ON ERROR GOTO 31000
+12040 IF EOF(8) THEN 12200
+12050   INPUT#8,A$:IF A$="ds" THEN 12500
+12060   GOTO 12040
+12200 PRINT "No direct sun data available for this day.":X=1:GOSUB 7220
+12210 ON ERROR GOTO 3100:CLOSE 8:RETURN
+12500 CLOSE 8:OPEN DD$+"B"+JD$+YF$+"."+NO$ FOR INPUT AS 8
+12510 PRINT#4,CHR$(12):PRINT CL$:PRINT "Position paper to top of page":GOSUB 9650
+12520 PRINT#4,"Summary of Brewer direct sun AOD measurements for ";DC$;" (";JD$;")"
+12530 PRINT#4,:PRINT#4,"Measurements made at ";LO$;" with instrument # ";NO$
+12540 PRINT#4,USING "     Latitude            = \        \     Longitude           = \        \";L1$;L2$
+12550 PRINT#4,USING "     ETC Values (O3/SO2) = #####/#####    Absorption (O3/SO2) = ##.###/##.###";B1;B2;A1;A3
+12570 PRINT#4,
+12580 PRINT#4,"Type Time(GMT)  Temp  Airmass    Aerosol optical depth             AOD std"
+12600 PRINT#4,
+13000 '
+13001 ' *** Process Direct Sun Summary Data ***
+13002 '
+13010 GOSUB 8000:GOSUB 8025:MS(0)=7:MZ(0)=4:T%=0:AO(6)=-100:AO(7)=100
+13100 IF EOF(8) THEN 14000
+13110   INPUT#8,A$
+13120   IF A$<>"summary" THEN 13100
+13130   INPUT#8,H$,A$,A$,A$,ZA,MU,TQ,TY$,FL$
+13140   IF TQ=-30 OR (instr(TY$,"aod")=0) THEN 13100
+13150   TOBS=TOBS+1
+13160   INPUT#8,A$,A$,AO(1),AO(2),AO(3),AO(4),AO(5),A$
+13170   INPUT#8,A$,A$,AO(1),AOS(2),AOS(3),AOS(4),AOS(5),A$
+13180   PRINT#4,RIGHT$(TY$,2);RIGHT$("  "+FL$,2);RIGHT$("  "+H$,10);
+13220   FOR I=1 TO 5: AO(i) = AO(i)/1000: AOS(i) = AOS(i)/1000: NEXT I
+13230     PRINT#4,USING "  ###   ###.###   ##.## ##.## ##.## ##.## ##.##   +#.## +#.## +#.## +#.## +#.##";TQ;MU;AO(1),AO(2),AO(3),AO(4),AO(5),AOS(1),AOS(2),AOS(3),AOS(4),AOS(5)
+13235     IF AO(6)<AO(5) THEN AO(6) = AO(5):'Max
+13236     IF AO(7)>AO(5) THEN AO(7) = AO(5):'Min
+13240     GOTO 13100
+14000 '
+14001 ' *** Close Brewer File and Print Out Summary Data ***
+14002 '
+14010 PRINT#4,:CLOSE 8
+14015 IF TOBS>0 THEN OPEN DD$+"AODAVG"+YF$+"."+NO$ FOR APPEND AS 8:PRINT#8,JD$;YF$;" ";:PRINT#8,USING " ##.##  ##.##  ### ";AO(7);AO(6);TOBS:CLOSE 8
+14020 IF TOBS>0 THEN PRINT#4,USING "The minimum/maximum AOD(320nm) = ##.## / ##.##  Total  ###  observations.";AO(7);AO(6);TOBS:GOTO 15000
+14100 PRINT#4,
+14110 PRINT#4,"***      Insufficient data to calculate      ***"
+14120 PRINT#4,"***  statistics for this day's observations. ***"
+15000 '
+15001 ' *** Clean Up and Exit ***
+15002 '
+15010 ON ERROR GOTO 3100
+15020 RETURN
+20000 '
+20001 ' *** Include Ozone Observation in Calculations ***
+30000 '
+30001 ' *** Error Handler on File Open ***
+30002 '
+30010 PRINT "No Brewer (B) file available for this day."
+30020 RESUME 30030
+30030 X=1:GOSUB 7220:ON ERROR GOTO 3100:CLOSE 8:RETURN
+31000 '
+31001 ' *** Generic Error Handler ***
+31002 '
+31010 GOTO 3100
+65529 REM proper last line
