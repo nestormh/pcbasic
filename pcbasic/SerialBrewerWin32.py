@@ -28,8 +28,8 @@ from serial.serialutil import SerialBase, SerialException, to_bytes, portNotOpen
 class Serial(SerialBase):
     """Serial port implementation for Win32 based on ctypes."""
 
-    BAUDRATES = (50, 75, 110, 134, 150, 200, 300, 600, 1200, 1800, 2400, 4800,
-                 9600, 19200, 38400, 57600, 115200)
+    BAUDRATES = (9600, 1200, 300, 50, 75, 110, 134, 150, 200, 600, 1800, 2400, 4800,
+                 19200, 38400, 57600, 115200)
 
     def __init__(self, *args, **kwargs):
         self._port_handle = None
@@ -43,6 +43,7 @@ class Serial(SerialBase):
         if the port cannot be opened.
         """
         print "Opening with SerialBrewer"
+
         if self._port is None:
             raise SerialException("Port must be configured before it can be used.")
         if self.is_open:
@@ -89,10 +90,17 @@ class Serial(SerialBase):
             win32.GetCommTimeouts(self._port_handle, ctypes.byref(self._orgTimeouts))
             #
             # self._reconfigure_port()
-            success = self.tryConnection()
+            success = False
+            for baudrate in self.BAUDRATES:
+                self._baudrate = baudrate
+                success = self.tryConnection()
+                if success:
+                    break
+                break
+
             print "************************"
             if (success):
-                print "Connection Successful!"
+                print "Connection Successful!(", self.baudrate, ")"
             else:
                 print "Communication failed"
             print "************************"
@@ -105,28 +113,19 @@ class Serial(SerialBase):
             #         win32.PURGE_TXCLEAR | win32.PURGE_TXABORT |
             #         win32.PURGE_RXCLEAR | win32.PURGE_RXABORT)
         except:
-            import traceback
-            traceback.print_exc()
-            print 1
             try:
-                print 2
                 self._close()
             except:
-                print 3
                 # ignore any exception when closing the port
                 # also to keep original exception that happened when setting up
                 pass
-            print 4
             self._port_handle = None
-            print 5
             raise
         else:
-            print 6
             self.is_open = True
 
     def _reconfigure_port(self):
         """Set communication parameters on opened port."""
-        print "reconfigure port"
         if not self._port_handle:
             raise SerialException("Can only operate on a valid port handle")
 
@@ -365,7 +364,7 @@ class Serial(SerialBase):
 
         success = False
         for test_number in range(1,10):
-            print ("Trying communication, attempt #%d" % test_number)
+            print ("Trying communication (%d), attempt #%d" % (self.baudrate, test_number))
 
             # Initial test: prompt found?
             if (not self.check_brewer_communication()):
@@ -392,7 +391,7 @@ class Serial(SerialBase):
 
     def check_brewer_communication(self):
         t1 = datetime.now()
-        self.write('\r')
+        self.write('\r\r\r\r')
 
         input_string = ""
         while((datetime.now() - t1).microseconds < 200000):
@@ -469,49 +468,28 @@ class Serial(SerialBase):
         Read size bytes from the serial port. If a timeout is set it may
         return less characters as requested. With no timeout it will block
         until the requested number of bytes is read."""
-        print 1
-        print "READING???"
-        print 2
         if not self._port_handle:
             raise portNotOpenError
-        print 4
         if size > 0:
-            print 5
             win32.ResetEvent(self._overlapped_read.hEvent)
             flags = win32.DWORD()
             comstat = win32.COMSTAT()
             if not win32.ClearCommError(self._port_handle, ctypes.byref(flags), ctypes.byref(comstat)):
                 raise SerialException('call to ClearCommError failed')
             n = min(comstat.cbInQue, size) if self.timeout == 0 else size
-            print "n", n
-            print "comstat.cbInQue", comstat.cbInQue
-            print "size", size
-            print "self.timeout", self.timeout
-            print 6
             if n > 0:
-                print 7
                 buf = ctypes.create_string_buffer(n)
-                print "buf", buf
                 rc = win32.DWORD()
-                print "rc", rc
                 read_ok = win32.ReadFile(self._port_handle, buf, n, ctypes.byref(rc), ctypes.byref(self._overlapped_read))
-                print "read_ok", read_ok
                 if not read_ok and win32.GetLastError() not in (win32.ERROR_SUCCESS, win32.ERROR_IO_PENDING):
                     raise SerialException("ReadFile failed (%r)" % ctypes.WinError())
                 win32.GetOverlappedResult(self._port_handle, ctypes.byref(self._overlapped_read), ctypes.byref(rc), True)
-                print "buf_raw", buf.raw
                 read = buf.raw[:rc.value]
-                print "read", read
-                print 8
-                # exit()
             else:
-                print 9
                 read = bytes()
         else:
-            print 10
             read = bytes()
 
-        print 11
         return bytes(read)
 
     def write(self, data):

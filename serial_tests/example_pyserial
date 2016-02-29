@@ -4,7 +4,7 @@ from SerialBrewer import SerialBrewer
 import serial.serialutil as serialutil
 from serial import win32
 
-s = SerialBrewer('COM6',
+s = SerialBrewer('COM1',
          baudrate=1200,        # baudrate
          bytesize=FIVEBITS,    # number of databits
          parity=PARITY_NONE,    # enable parity checking
@@ -13,6 +13,23 @@ s = SerialBrewer('COM6',
          xonxoff=0,             # enable software flow control
          rtscts=0,              # enable RTS/CTS flow control
     )
+
+s = SerialBrewer('COM2',
+         baudrate=1200,        # baudrate
+         bytesize=FIVEBITS,    # number of databits
+         parity=PARITY_NONE,    # enable parity checking
+         stopbits=STOPBITS_ONE_POINT_FIVE, # number of stopbits
+         timeout=5,             # set a timeout value, None for waiting forever
+         xonxoff=0,             # enable software flow control
+         rtscts=0,              # enable RTS/CTS flow control
+    )
+
+while True:
+    if s.in_waiting:
+        c = s.read(1)
+        print hex(ord(c)), "(", c, ")",
+
+    time.sleep(0.5)
 
 # s.setRTS(0)
 # s.setDTR(0)

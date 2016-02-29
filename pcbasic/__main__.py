@@ -137,6 +137,7 @@ def convert():
         logging.error(str(e))
 
 def start_basic():
+    print 1
     """ Load & run programs and commands and hand over to interactive mode. """
     import program
     import run
@@ -151,13 +152,17 @@ def start_basic():
     do_reset = False
     backend, console = None, None
     exit_error = ''
+    print 2
     try:
+        print 3
         # resume from saved emulator state if requested and available
         resume = config.get('resume') and state.load()
         # choose the video and sound backends
         backend, console = prepare_console()
         # greet, load and run only if not resuming
+        print 4
         if resume:
+            print 5
             # override selected settings from command line
             cassette.override()
             disk.override()
@@ -165,7 +170,9 @@ def start_basic():
             if not state.basic_state.execute_mode:
                 state.basic_state.prompt = False
             run.start('', False, config.get('quit'))
+            print 6
         else:
+            print 7
             # load/run program
             config.options['run'] = config.get(1) or config.get('run')
             prog = config.get('run') or config.get('load')
@@ -177,52 +184,75 @@ def start_basic():
             print_greeting(console)
             # start the interpreter (and get out if we ran with -q)
             run.start(config.get('exec'), config.get('run'), config.get('quit'))
+            print 8
     except error.RunError as e:
+        print 9
         exit_error = error.get_message(e.err)
     except error.Exit:
+        print 10
         # pause before exit if requested
         if config.get('wait'):
+            print 11
             backend.video_queue.put(backend.Event(backend.VIDEO_SET_CAPTION, 'Press a key to close window'))
             backend.video_queue.put(backend.Event(backend.VIDEO_SHOW_CURSOR, False))
             state.console_state.keyb.pause = True
             # this performs a blocking keystroke read if in pause state
             backend.check_events()
+        print 12
     except error.Reset:
+        print 13
         do_reset = True
     except KeyboardInterrupt:
+        print 14
         if config.get('debug'):
             raise
     except Exception as e:
+        print 15
+        print traceback.print_exc()
         exit_error = "Unhandled exception\n%s" % traceback.format_exc()
     finally:
+        print 16
         try:
+            print 17
             audio.close()
         except (NameError, AttributeError) as e:
+            print 18
             logging.debug('Error on closing audio: %s', e)
         try:
+            print 19
             # fix the terminal on exit (important for ANSI terminals)
             # and save display interface state into screen state
             state.console_state.screen.close()
         except (NameError, AttributeError) as e:
+            print 20
             logging.debug('Error on closing screen: %s', e)
         # delete state if resetting
         if do_reset:
+            print 21
             state.delete()
             if plat.system == 'Android':
                 shutil.rmtree(plat.temp_dir)
         else:
+            print 22
             state.save()
         try:
+            print 23
             # close files if we opened any
             devices.close_files()
         except (NameError, AttributeError) as e:
+            print 24
             logging.debug('Error on closing files: %s', e)
         try:
+            print 25
             devices.close_devices()
         except (NameError, AttributeError) as e:
+            print 26
             logging.debug('Error on closing devices: %s', e)
         if exit_error:
+            print 27
             logging.error(exit_error)
+        print 28
+    print 29
 
 def prepare_console():
     """ Initialise backend and console. """

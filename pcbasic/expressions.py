@@ -571,7 +571,7 @@ def value_loc(ins):
     return fp.pack(fp.Single.from_int(the_file.loc()))
 
 def value_eof(ins):
-    """ EOF: get end-of-file. """
+    """ EOF: get end-of-fil/e. """
     util.skip_white(ins)
     num = vartypes.pass_int_unpack(parse_bracket(ins), maxint=0xffff)
     if num == 0:

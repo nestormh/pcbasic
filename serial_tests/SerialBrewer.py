@@ -135,7 +135,7 @@ class SerialBrewer(SerialBase):
         # Get state and modify it:
         comDCB = win32.DCB()
         win32.GetCommState(self._port_handle, ctypes.byref(comDCB))
-        comDCB.BaudRate = self._baudrate
+        comDCB.BaudRate = 9600#self._baudrate
 
         if self._bytesize == serial.FIVEBITS:
             comDCB.ByteSize = 5
