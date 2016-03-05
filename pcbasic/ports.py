@@ -116,7 +116,6 @@ class COMDevice(devices.Device):
 
     def open(self, number, param, filetype, mode, access, lock,
                        reclen, seg, offset, length):
-        print "Before open, stream, ", self.stream, " comfile", self.device_file
         """ Open a file on COMn: """
         if not self.stream:
             raise error.RunError(error.DEVICE_UNAVAILABLE)
@@ -143,7 +142,7 @@ class COMDevice(devices.Device):
         f.col = self.device_file.col
 
         self.device_file = f
-        print "After open, stream, ", self.stream, " comfile", self.device_file, "f", f
+
         import time
         time.sleep(2)
 
@@ -522,7 +521,6 @@ class SerialStream(object):
 
     def close(self):
         """ Close the serial connection. """
-        print "closing"
         import time
         self._serial.close()
         self.is_open = False

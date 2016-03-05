@@ -1,3 +1,0 @@
-to reduce cpu gwbasic usage use DBAKBD.com command in brewer.bat file - before setdate,gwbasic
-with parameters :  DBAKBD /D30
-

@@ -56,7 +56,7 @@ class VideoANSI(video_cli.VideoCLI):
         self.width = 80
         self.text = [[[(u' ', (7, 0, False, False))]*80 for _ in range(25)]]
         self._set_default_colours(16)
-        video_cli.VideoCLI.__init__(self)
+        video_cli.VideoCLI.__init__(self, **kwargs)
 
     def close(self):
         """ Close the text interface. """
