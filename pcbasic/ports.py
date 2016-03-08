@@ -34,10 +34,12 @@ except ImportError:
     from StringIO import StringIO
 
 try:
-    # import serial
-    # from serial import SerialException, serialutil
-    import SerialBrewer
-    from SerialBrewerWin32 import SerialException, serialutil
+    if config.get['use-serial-brewer']:
+        import SerialBrewer
+        from SerialBrewerWin32 import SerialException, serialutil
+    else:
+        import serial
+        from serial import SerialException, serialutil
 except Exception:
     serial = None
     SerialException = IOError
@@ -437,7 +439,10 @@ class SerialStream(object):
 
     def __init__(self, port, do_open=False):
         """ Initialise the stream. """
-        self._serial = SerialBrewer.serial_for_url(port, timeout=0, do_not_open=not do_open)
+        if config.get['use-serial-brewer']:
+            self._serial = SerialBrewer.serial_for_url(port, timeout=0, do_not_open=not do_open)
+        else:
+            self._serial = serial.serial_for_url(port, timeout=0, do_not_open=not do_open)
         self._url = port
         self.is_open = False
 

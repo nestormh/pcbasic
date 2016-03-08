@@ -300,7 +300,10 @@ def exec_python(ins):
 
     # try:
     python = gwbasic2python.GWBasic2Python()
-    python.start_script(parameter)
+    if parameter[0] in ("\"", "\'") and parameter[-1] in ("\"", "\'"):
+        python.start_script(parameter[1:-1])
+    else:
+        raise Exception("Parameter %s is not a valid one for the PYTHON statement." % parameter)
     # except:
     #     print "Error while launching script", parameter
     #     raise
@@ -1857,7 +1860,7 @@ def exec_dim(ins):
             if None in dimensions:
                 raise error.RunError(error.STX)
             util.require_read(ins, (')', ']'))
-            # yes, we can write dim gh[5)
+            # yes, we can write dim gh[5)7
         var.dim_array(name, dimensions)
         if not util.skip_white_read_if(ins, (',',)):
             break

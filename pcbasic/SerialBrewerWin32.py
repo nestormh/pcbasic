@@ -13,13 +13,16 @@ import ctypes
 import time
 from datetime import datetime
 from serial import win32
+import sys
 
+import logging
 import util
 import expressions
 import state
 import basictoken as tk
 import vartypes
 import representation
+import config
 
 import serial
 from serial.serialutil import SerialBase, SerialException, to_bytes, portNotOpenError, writeTimeoutError
@@ -35,6 +38,7 @@ class Serial(SerialBase):
         self._port_handle = None
         self._overlapped_read = None
         self._overlapped_write = None
+        self.verbose = config.get['verbose-brewer']
         super(Serial, self).__init__(*args, **kwargs)
 
     def open(self):
@@ -42,7 +46,9 @@ class Serial(SerialBase):
         Open port with current settings. This may throw a SerialException
         if the port cannot be opened.
         """
-        print "Opening with SerialBrewer"
+        if self.verbose:
+            sys.stdout.write("Opening with SerialBrewer\n")
+        logging.info("Opening with SerialBrewer")
 
         if self._port is None:
             raise SerialException("Port must be configured before it can be used.")
@@ -98,14 +104,16 @@ class Serial(SerialBase):
                     break
                 break
 
-            print "************************"
+            success_output = ""
+            success_output += "************************\n"
             if (success):
-                print "Connection Successful!(", self.baudrate, ")"
+                success_output += "Connection Successful!(" + str(self.baudrate) + ")\n"
             else:
-                print "Communication failed"
-            print "************************"
-            # print 0
-            #
+                success_output += "Communication failed\n"
+            success_output += "************************\n"
+            if self.verbose:
+                sys.stdout.write(success_output)
+            logging.info(success_output)
             # # Clear buffers:
             # Remove anything that was there
             # win32.PurgeComm(
@@ -364,23 +372,27 @@ class Serial(SerialBase):
 
         success = False
         for test_number in range(1,10):
-            print ("Trying communication (%d), attempt #%d" % (self.baudrate, test_number))
+            if self.verbose:
+                sys.stdout.write("Trying communication (%d), attempt #%d\n" % (self.baudrate, test_number))
+            logging.info("Trying communication (%d), attempt #%d" % (self.baudrate, test_number))
 
             # Initial test: prompt found?
             if (not self.check_brewer_communication()):
-                print "Test failed"
+                if self.verbose:
+                    sys.stdout.write("Test failed\n")
+                logging.info("Test failed")
                 continue
 
             return True
 
             # Second attempt (for safety): prompt found?
             if (not self.check_brewer_communication()):
-                print "Test failed"
+                if self.verbose:
+                    sys.stdout.write("Test failed\n")
+                logging.info("Test failed")
                 continue
 
             return True
-            # If prompt is found, get Brewer ID
-            # print "Initial communication stablished"
 
             success = self.check_brewer_id()
             if (success):
@@ -427,7 +439,9 @@ class Serial(SerialBase):
         except:
             return False
 
-        print ("Communication with Brewer #%d completed" % self._brewer_id)
+        if self.verbose:
+            sys.stdout.write("Communication with Brewer #%d completed\n" % self._brewer_id)
+        logging.info("Communication with Brewer #%d completed" % self._brewer_id)
 
         return True
 

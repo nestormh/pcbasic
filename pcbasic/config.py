@@ -152,6 +152,8 @@ arguments = {
     'ctrl-c-break': {'type': 'bool', 'default': True,},
     'wait': {'type': 'bool', 'default': False,},
     'current-device': {'type': 'string', 'default': 'Z'},
+    'use-serial-brewer': { 'type' : 'bool', 'default': True },
+    'verbose-brewer': { 'type' : 'bool', 'default': True }
 }
 
 

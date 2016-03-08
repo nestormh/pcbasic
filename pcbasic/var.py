@@ -330,8 +330,11 @@ def base_array(base):
 def get_array(name, index):
     """ Retrieve the value of an array element. """
     [dimensions, lst] = check_dim_array(name, index)
+    # print "name", name, "dimensions", dimensions, "lst", lst
     bigindex = index_array(index, dimensions)
+    # print "bigindex", bigindex
     value = lst[bigindex*var_size_bytes(name):(bigindex+1)*var_size_bytes(name)]
+    # print "value", value
     if name[-1] == '$':
         return get_string_copy_packed(value)
     return (name[-1], value)
