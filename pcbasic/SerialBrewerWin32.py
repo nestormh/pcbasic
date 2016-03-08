@@ -38,7 +38,7 @@ class Serial(SerialBase):
         self._port_handle = None
         self._overlapped_read = None
         self._overlapped_write = None
-        self.verbose = config.get['verbose-brewer']
+        self.verbose = config.get('verbose-brewer')
         super(Serial, self).__init__(*args, **kwargs)
 
     def open(self):

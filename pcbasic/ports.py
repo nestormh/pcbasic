@@ -16,6 +16,7 @@ import socket
 import datetime
 import threading
 import time
+import config
 
 # kbhit() also appears in video_none.py
 import plat
@@ -34,7 +35,7 @@ except ImportError:
     from StringIO import StringIO
 
 try:
-    if config.get['use-serial-brewer']:
+    if config.get('use-serial-brewer'):
         import SerialBrewer
         from SerialBrewerWin32 import SerialException, serialutil
     else:
@@ -49,7 +50,6 @@ try:
 except Exception:
     parallel = None
 
-import config
 import state
 import error
 # for wait() during port read
@@ -78,7 +78,6 @@ def prepare():
     serial_in_size = config.get('serial-buffer-size')
     state.io_state.devices['COM1:'] = COMDevice(config.get('com1'), max_reclen, serial_in_size)
     state.io_state.devices['COM2:'] = COMDevice(config.get('com2'), max_reclen, serial_in_size)
-
 
 ###############################################################################
 # COM ports
@@ -439,7 +438,7 @@ class SerialStream(object):
 
     def __init__(self, port, do_open=False):
         """ Initialise the stream. """
-        if config.get['use-serial-brewer']:
+        if config.get('use-serial-brewer'):
             self._serial = SerialBrewer.serial_for_url(port, timeout=0, do_not_open=not do_open)
         else:
             self._serial = serial.serial_for_url(port, timeout=0, do_not_open=not do_open)
