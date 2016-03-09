@@ -12,9 +12,8 @@ import error
 import vartypes
 import state
 import memory
-import struct
 
-byte_size = {'$': 5, '%': 2, '!': 4, '#': 8}
+byte_size = {'$': 3, '%': 2, '!': 4, '#': 8}
 
 def prepare():
     """ Initialise the var module """
@@ -36,11 +35,11 @@ class StringSpace(object):
     def retrieve(self, key):
         """ Retrieve a string by its 3-byte sequence. 2-byte keys allowed, but will return longer string for empty string. """
         key = str(key)
-        if len(key) == 4:
+        if len(key) == 2:
             return self.strings[key]
-        elif len(key) == 5:
+        elif len(key) == 3:
             # if string length == 0, return empty string
-            return bytearray('') if ord(key[0]) == 0 else self.strings[key[-4:]]
+            return bytearray('') if ord(key[0]) == 0 else self.strings[key[-2:]]
         else:
             raise KeyError('String key %s has wrong length.' % repr(key))
 
@@ -59,7 +58,7 @@ class StringSpace(object):
             # find new string address
             self.current -= len(string_buffer)
             address = self.current + 1
-        key = struct.pack('i',address)
+        key = str(vartypes.value_to_uint(address))
         # don't store empty strings
         if len(string_buffer) > 0:
             if key in self.strings:
@@ -69,12 +68,12 @@ class StringSpace(object):
 
     def address(self, key):
         """ Return the address of a given key. """
-        return struct.unpack('i', key[-4:])
+        return vartypes.uint_to_value(bytearray(key[-2:]))
 
 def get_string_copy_packed(sequence):
     """ Return a packed copy of a string from its 3-byte sequence. """
     length = ord(sequence[0:1])
-    address = struct.unpack('i', sequence[-4:])
+    address = vartypes.uint_to_value(sequence[-2:])
     if address >= memory.var_start():
         # string is stored in string space
         return state.basic_state.strings.copy_packed(sequence)
@@ -160,7 +159,7 @@ def set_var(name, value):
     name = vartypes.complete_name(name)
     type_char = name[-1]
     # check if garbage needs collecting before allocating mem
-    size = (max(5, len(name)) + 1 + byte_size[type_char])
+    size = (max(3, len(name)) + 1 + byte_size[type_char])
     if type_char == '$':
         unpacked = vartypes.pass_string_unpack(value)
         size += len(unpacked)
@@ -185,8 +184,8 @@ def set_var(name, value):
     # first two bytes: chars of name or 0 if name is one byte long
     if name not in state.basic_state.var_memory:
         name_ptr = state.basic_state.var_current
-        var_ptr = name_ptr + max(5, len(name)) + 1 # byte_size first_letter second_letter_or_nul remaining_length_or_nul
-        state.basic_state.var_current += max(5, len(name)) + 1 + byte_size[name[-1]]
+        var_ptr = name_ptr + max(3, len(name)) + 1 # byte_size first_letter second_letter_or_nul remaining_length_or_nul
+        state.basic_state.var_current += max(3, len(name)) + 1 + byte_size[name[-1]]
         state.basic_state.var_memory[name] = (name_ptr, var_ptr)
 
 def get_var(name):
@@ -293,7 +292,7 @@ def dim_array(name, dimensions):
     # update memory model
     # first two bytes: chars of name or 0 if name is one byte long
     name_ptr = state.basic_state.array_current
-    record_len = 1 + max(5, len(name)) + 5 + 2*len(dimensions)
+    record_len = 1 + max(3, len(name)) + 3 + 2*len(dimensions)
     array_ptr = name_ptr + record_len
     state.basic_state.array_current += record_len + array_size_bytes(name)
     state.basic_state.array_memory[name] = (name_ptr, array_ptr)
@@ -331,8 +330,11 @@ def base_array(base):
 def get_array(name, index):
     """ Retrieve the value of an array element. """
     [dimensions, lst] = check_dim_array(name, index)
+    # print "name", name, "dimensions", dimensions, "lst", lst
     bigindex = index_array(index, dimensions)
+    # print "bigindex", bigindex
     value = lst[bigindex*var_size_bytes(name):(bigindex+1)*var_size_bytes(name)]
+    # print "value", value
     if name[-1] == '$':
         return get_string_copy_packed(value)
     return (name[-1], value)
@@ -382,14 +384,14 @@ def set_field_var_or_array(random_file, varname, indices, offset, length):
         # update memory model (see set_var)
         if varname not in state.basic_state.var_memory:
             name_ptr = state.basic_state.var_current
-            var_ptr = name_ptr + max(5, len(varname)) + 1 # byte_size first_letter second_letter_or_nul remaining_length_or_nul
-            state.basic_state.var_current += max(5, len(varname)) + 1 + byte_size['$']
+            var_ptr = name_ptr + max(3, len(varname)) + 1 # byte_size first_letter second_letter_or_nul remaining_length_or_nul
+            state.basic_state.var_current += max(3, len(varname)) + 1 + byte_size['$']
             state.basic_state.var_memory[varname] = (name_ptr, var_ptr)
     else:
         check_dim_array(varname, indices)
         dimensions, lst, _ = state.basic_state.arrays[varname]
         bigindex = index_array(indices, dimensions)
-        lst[bigindex*5:(bigindex+1)*5] = str_sequence
+        lst[bigindex*3:(bigindex+1)*3] = str_sequence
 
 def get_var_or_array_string_pointer(name, indices):
     """ Retrieve the pointer value of a string or a string-array element. """
@@ -403,7 +405,7 @@ def get_var_or_array_string_pointer(name, indices):
             check_dim_array(name, indices)
             dimensions, lst, _ = state.basic_state.arrays[name]
             bigindex = index_array(indices, dimensions)
-            return lst[bigindex*5:(bigindex+1)*5]
+            return lst[bigindex*3:(bigindex+1)*3]
     except KeyError:
         return None
 
@@ -447,7 +449,7 @@ def string_assign_unpacked_into(sequence, offset, num, val):
     # ensure the length of val is num, cut off any extra characters
     val = val[:num]
     length = ord(sequence[0:1])
-    address = struct.unpack('i', sequence[-4:])
+    address = vartypes.uint_to_value(sequence[-2:])
     if offset + num > length:
         num = length - offset
     if num <= 0:
@@ -487,8 +489,8 @@ def collect_garbage():
         if name[-1] == '$':
             # ignore version - we can't put and get into string arrays
             dimensions, lst, _ = state.basic_state.arrays[name]
-            for i in range(0, len(lst), 5):
-                v = lst[i:i+5]
+            for i in range(0, len(lst), 3):
+                v = lst[i:i+3]
                 try:
                     string_list.append((lst, i,
                             state.basic_state.strings.address(v),
@@ -502,7 +504,7 @@ def collect_garbage():
     state.basic_state.strings.clear()
     for item in string_list:
         # re-allocate string space; no need to copy buffer
-        item[0][item[1]:item[1]+5] = state.basic_state.strings.store(item[3])
+        item[0][item[1]:item[1]+3] = state.basic_state.strings.store(item[3])
 
 def fre():
     """ Return the amount of memory available to variables, arrays, strings and code. """

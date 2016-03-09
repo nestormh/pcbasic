@@ -1,4 +1,91 @@
+### BREWERSOFT ###
+
+The software included in this repository is a for of the PC-BASIC software (whose latest version can be found at 
+the [PC-BASIC home page](http://robhagemans.github.io/pcbasic/). The documentation of the latest version of the PC-BASIC at the moment
+in which this fork was created can be found below.
+
+The documentation of this software is divided into: TODO
+
+## Launch configuration ##
+
+In order to launch the software, please use the launch_pcbasic.bat file, included in the root folder of this repository.
+
+You will need to configure the following variables at the beginning of the file:
+* *NOBREW*: Use NOBREW=1 if the brewer is not connected
+* *BREWER_MAIN*: indicates the folder in which the main GW-Basic file is contained
+* *BREWER_DEVICE*: indicates the folder in which the data related to the specific brewer being connected is included
+* *MAIN_FILE*: is the name of the main GW-Basic file
+* *COM_PORT*: is the identifier of the port in which the brewer is connected
+* *PCBASIC_PATH*: is the path in which the PC-BASIC is located
+* *PYTHON_DIR*: is the folder in which the python.exe is located
+* *ADDITIONAL_OPTIONS*: set other options that are desired to be used (for example, ADDITIONAL_OPTIONS="-f=10 --debug")
+
+## Additional options ##
+
+Apart the original options included in PC-BASIC (see the [PC-BASIC home page](http://robhagemans.github.io/pcbasic/)), there are other 
+options related to the brewer itself:
+ 
+* *--use-serial-brewer*: Allows to choose if the original serial module (False), or the one specifically designed for the Brewer (True), 
+which will be referred as SerialBrewer from now, for clarification purposes.
+The purpose of this module is to simulate the existing behavior observed for the BrewerCMD program, each time the OPEN statement is
+called for a COM port. Iterativelly, and for a list of possible baudrates, the program sends a '\r' character, and waits for a response
+from the Brewer. If the sequence ' -> ' is received, the program repeats the operation again at the same baudrate, just to confirm. This 
+process is done up to 10 times for each baudrate, until the connection is successful. By default, this parameter is set to True.
+
+* *--verbose-brewer*: If selected (True by default), the output from the tests described for the SerialBrewer module is shown. It is useful
+to test the communication with the Brewer if it fails.
+
+* *--maximal-memory*: Althought it comes from the original PC-Basic, now it allows sizes bigger than 64K.
+
+## PYTHON statement ##
+
+An non-standard GW-Basic statement has been included in this version. The purpose of this statement is making the PC-Basic able to include 
+Python scripts, allowing to combine the latests developments in Python with the existing software written in GW-Basic. The usage is as 
+follows:
+
+PYTHON "<python_script_file.py>"
+
+The called file will receive the existing variables in GW-Basic, so it can read from them. However, have in mind that those variables will
+be different, since the naming convention for GW-Basic is not compatible with Python variable names. So:
+
+* All variable names will be in CAPITAL letters
+* The '$' character at the end of string variables will be appended to the variable using the suffix '_STR'
+
+Example: VAR$ -> VAR_STR 
+
+* The '!' character at the end of string variables will be appended to the variable using the suffix '_INT'
+
+Example: VAR! -> VAR_INT
+
+* The '%' character at the end of string variables will be appended to the variable using the suffix '_SNG'
+
+Example: VAR% -> VAR_SNG
+
+* The '#' character at the end of string variables will be appended to the variable using the suffix '_DBL'
+
+Example: VAR# -> VAR_DBL
+
+* Once the python program finishes, all variable names finished into '_STR', '_INT', '_SNG', '_DBL' will be converted to their related names
+in GW-Basic
+* To get a list of the variables available, execute 'print globals().keys()' inside the python script
+* Those variables not following this convention will be simply ignored
+* Please have in mind that all variable names will be converted to CAPITAL letters.
+* These indications also apply for matrices.
+* There is an example of a program which calls to a python script and retrieves the variables in the examples/python_statement folder
+
+## Main modifications ##
+
+* SerialBrewer.py and SerialBrewerWin32.py files included for specific communication with the Brewer.
+* Added some fixes to the ports.py file, in order to solve the problem of duplicated COM files when the port was re-open.
+* Added some fixes to the video_ansi.py file, which was not receiving the proper parameters, making it impossible to use the ansi interface.
+* The file var.py has been modified in order to use 32-bit indexes, which allowed to use more than 64K for variables, among other modifications.
+* File statements.py has been modified, and a new file called gwbasic2python.py, allowing to execute python scripts from GW-Basic.
+* Other modifications.
+
 ### PC-BASIC ###
+
+In this section, the original documentation of the PC-Basic has been included, for tracking and usability purposes.
+
 _A free, cross-platform emulator for the GW-BASIC family of interpreters._
 
 PC-BASIC is a free, cross-platform interpreter for GW-BASIC, Advanced BASIC (BASICA), PCjr Cartridge Basic and Tandy 1000 GW-BASIC.
