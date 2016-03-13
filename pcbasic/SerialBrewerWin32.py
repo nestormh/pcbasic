@@ -102,7 +102,6 @@ class Serial(SerialBase):
                 success = self.tryConnection()
                 if success:
                     break
-                break
 
             success_output = ""
             success_output += "************************\n"
@@ -373,13 +372,13 @@ class Serial(SerialBase):
         success = False
         for test_number in range(1,10):
             if self.verbose:
-                sys.stdout.write("Trying communication (%d), attempt #%d\n" % (self.baudrate, test_number))
-            logging.info("Trying communication (%d), attempt #%d" % (self.baudrate, test_number))
+                sys.stdout.write("Trying communication (%d), attempt #%d ->" % (self.baudrate, test_number))
+            logging.info("Trying communication (%d), attempt #%d ->" % (self.baudrate, test_number))
 
             # Initial test: prompt found?
             if (not self.check_brewer_communication()):
                 if self.verbose:
-                    sys.stdout.write("Test failed\n")
+                    sys.stdout.write("Test failed\r")
                 logging.info("Test failed")
                 continue
 
@@ -388,7 +387,7 @@ class Serial(SerialBase):
             # Second attempt (for safety): prompt found?
             if (not self.check_brewer_communication()):
                 if self.verbose:
-                    sys.stdout.write("Test failed\n")
+                    sys.stdout.write("Test failed\r")
                 logging.info("Test failed")
                 continue
 

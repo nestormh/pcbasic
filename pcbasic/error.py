@@ -172,6 +172,8 @@ class Exit(Error):
 class RunError(Error):
     """ Runtime error. """
     def __init__(self, value, pos=-1):
+        # import traceback
+        # traceback.print_exc()
         Error.__init__(self)
         self.err = value
         if not state.basic_state.run_mode or pos != -1:

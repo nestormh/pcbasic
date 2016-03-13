@@ -21,7 +21,7 @@ set PCBASIC_PATH=C:\brewer\brewer\pcbasic
 rem PYTHON_DIR is the folder in which the python.exe is located
 set PYTHON_DIR=C:\Python27
 rem ADDITIONAL_OPTIONS set other options that are desired to be used (for example, ADDITIONAL_OPTIONS="-f=10 --debug")
-set ADDITIONAL_OPTIONS="-f=10"
+set ADDITIONAL_OPTIONS="-f=10 --max-memory=67108864"
 
 rem ############################################################################
 rem ############################################################################

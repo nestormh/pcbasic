@@ -35,7 +35,7 @@ process is done up to 10 times for each baudrate, until the connection is succes
 * *--verbose-brewer*: If selected (True by default), the output from the tests described for the SerialBrewer module is shown. It is useful
 to test the communication with the Brewer if it fails.
 
-* *--maximal-memory*: Althought it comes from the original PC-Basic, now it allows sizes bigger than 64K.
+* *--max-memory*: Althought it comes from the original PC-Basic, now it allows sizes bigger than 64K.
 
 ## PYTHON statement ##
 
