@@ -692,7 +692,7 @@ class DiskDevice(object):
             console.write_line(line)
             # allow to break during dir listing & show names flowing on screen
             backend.check_events()
-        console.write_line(' %d Bytes free' % self.get_free())
+        console.write_line(' %d Bytes free\n' % self.get_free())
 
     def get_free(self):
         """ Return the number of free bytes on the drive. """

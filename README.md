@@ -37,6 +37,21 @@ to test the communication with the Brewer if it fails.
 
 * *--max-memory*: Althought it comes from the original PC-Basic, now it allows sizes bigger than 64K.
 
+* *--override-special-keys*: Allows the use of special combinations, not caught by default by the CLI interface. See section *Special keys*
+
+## Special keys ##
+
+Unfortunately, some special keys are not properly caught on the CLI version of the PC-Basic. The solution taken to overcome this problem
+is to map them to the special F1 keys. For that, the option *--override-special-keys* must be set to True. The mapped keys are:
+
+* F7: CTRL + HOME 
+* F8: CTRL + END 
+* F9: CTRL + LEFT 
+* F10: CTRL + RIGHT
+
+If during the execution of the program you are not sure which is the proper key you should press, just press F1 and a message will show
+you the list of mapped keys.
+
 ## PYTHON statement ##
 
 An non-standard GW-Basic statement has been included in this version. The purpose of this statement is making the PC-Basic able to include 

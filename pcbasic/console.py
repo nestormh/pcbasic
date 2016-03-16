@@ -35,6 +35,7 @@ keys_line_replace_chars = {
 
 # KEY ON?
 state.console_state.keys_visible = False
+state.console_state.special_keys_visible = False
 
 # viewport parameters
 state.console_state.view_start = 1
@@ -573,6 +574,22 @@ def skip_word_left():
         if (c not in string.digits + string.ascii_letters):
             break
     set_pos(last_row, last_col)
+
+def show_special_keys_info():
+    clear_key_row()
+    if not state.console_state.special_keys_visible:
+        state.console_state.special_keys_visible = True
+    else:
+        state.console_state.special_keys_visible = False
+        text = " F7: CTRL + HOME ; F8: CTRL + END ; F9: CTRL + LEFT ; F10: CTRL + RIGHT"
+        while len(text) < state.console_state.screen.mode.width:
+            text += " "
+        if (state.console_state.screen.attr>>4) & 0x7 == 0:
+            write_for_keys(text, 1, 0x70)
+        else:
+            write_for_keys(text, 1, 0x07)
+
+        state.console_state.screen.apage.row[24].end = state.console_state.screen.mode.width
 
 def clear():
     """ Clear the screen. """

@@ -153,7 +153,8 @@ arguments = {
     'wait': {'type': 'bool', 'default': False,},
     'current-device': {'type': 'string', 'default': 'Z'},
     'use-serial-brewer': { 'type' : 'bool', 'default': True },
-    'verbose-brewer': { 'type' : 'bool', 'default': True }
+    'verbose-brewer': { 'type' : 'bool', 'default': True },
+    'override-special-keys': { 'type' : 'bool', 'default': True}
 }
 
 

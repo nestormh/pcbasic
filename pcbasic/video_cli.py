@@ -12,6 +12,8 @@ import logging
 import threading
 import Queue
 
+import config
+
 import video
 import plat
 import backend
@@ -27,6 +29,12 @@ def prepare():
     """ Initialise the video_cli module. """
     video.plugin_dict['cli'] = VideoCLI
 
+    if config.get('override-special-keys'):
+        # print esc_to_eascii
+        esc_to_eascii[ansi.F7] = eascii.CTRL_HOME
+        esc_to_eascii[ansi.F8] = eascii.CTRL_END
+        esc_to_eascii[ansi.F9] = eascii.CTRL_LEFT
+        esc_to_eascii[ansi.F10] = eascii.CTRL_RIGHT
 
 ###############################################################################
 

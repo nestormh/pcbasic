@@ -14,6 +14,7 @@ import unicodepage
 import scancode
 import eascii
 import redirect
+import console
 
 import backend
 
@@ -297,6 +298,9 @@ class Keyboard(object):
         while self.prebuf:
             c, scan, mod, check_full = self.prebuf.pop(0)
             # handle special key combinations
+            if scan == scancode.F1:
+                if config.get('override-special-keys'):
+                    console.show_special_keys_info()
             if (scan == scancode.DELETE and
                     mod & (modifier[scancode.CTRL] | modifier[scancode.ALT])):
                 # ctrl-alt-del: if not captured by the OS, reset the emulator
@@ -335,7 +339,6 @@ function_key = {
     eascii.F9: 8, eascii.F10: 9, eascii.F11: 10, eascii.F12: 11}
 # switch off macro repacements
 state.basic_state.key_macros_off = False
-
 
 # F12 emulator home-key
 # also f12+b -> ctrl+break
