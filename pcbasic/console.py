@@ -14,6 +14,7 @@ import redirect
 import error
 # to initialise state.console_state.codepage
 import unicodepage
+import logging
 
 # alt+key macros for interactive mode
 # these happen at a higher level than F-key macros

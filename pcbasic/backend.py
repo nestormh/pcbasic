@@ -16,6 +16,8 @@ import scancode
 import error
 import clipboard
 
+import logging
+
 video_queue = Queue.Queue()
 input_queue = Queue.Queue()
 # audio queues
@@ -162,7 +164,7 @@ def prepare():
 ###############################################################################
 # main event checker
 
-tick_s = 0.0006
+tick_s = 0.0006 #float(config.get('tick-s'))#0.001 #0.0006
 longtick_s = 0.024 - tick_s
 
 icon = None

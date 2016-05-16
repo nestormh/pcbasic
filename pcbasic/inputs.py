@@ -18,6 +18,7 @@ import console
 
 import backend
 
+import logging
 
 ###############################################################################
 # keyboard queue
@@ -103,11 +104,20 @@ class KeyboardBuffer(object):
 
     def getc(self, expand=True):
         """ Read a keystroke as eascii/codepage. """
+        # import traceback
+        # logging.debug(traceback.extract_stack())
+        import time
+        # time.sleep(0.024 - 0.0006)
+        time.sleep(0.001)
         try:
-            return self.expansion_vessel.pop(0)
+            c = self.expansion_vessel.pop(0)
+            logging.debug("Leido2 %s" % c)
+            return c
         except IndexError:
             try:
                 c = self.buffer.pop(0)[0]
+                logging.debug("Leido2 %s" % c)
+                
             except IndexError:
                 c = ''
             if c:

@@ -2393,6 +2393,9 @@ def exec_print(ins, output=None):
             if expr[0] in ('%', '!', '#'):
                 word += ' '
             # output file (devices) takes care of width management; we must send a whole string at a time for this to be correct.
+            if word != None:
+                if "bad" in str(word):
+                    logging.debug("bad data: %s" % str(word))
             output.write(str(word))
     if util.skip_white_read_if(ins, (tk.USING,)):
         return exec_print_using(ins, output)

@@ -154,7 +154,8 @@ arguments = {
     'current-device': {'type': 'string', 'default': 'Z'},
     'use-serial-brewer': { 'type' : 'bool', 'default': True },
     'verbose-brewer': { 'type' : 'bool', 'default': True },
-    'override-special-keys': { 'type' : 'bool', 'default': True}
+    'override-special-keys': { 'type' : 'bool', 'default': True},
+    'tick-s' : {'type' : 'float', 'default': 0.0006 }
 }
 
 

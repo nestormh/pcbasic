@@ -59,7 +59,7 @@ import printer
 
 
 # buffer sizes (/c switch in GW-BASIC)
-serial_in_size = 256
+serial_in_size = 4096
 serial_out_size = 128
 
 # maximum record length (-s)
@@ -144,8 +144,8 @@ class COMDevice(devices.Device):
 
         self.device_file = f
 
-        import time
-        time.sleep(2)
+        # import time
+        time.sleep(0.5)
 
         # self.on_execution = True
         # self.working_thread = threading.Thread(target=self.worker)
@@ -239,7 +239,7 @@ class COMDevice(devices.Device):
         """ Whether a char is present in buffer. For ON COM(n). """
         if not self.device_file:
             return False
-        self.device_file.check_read()
+        self.device_file.check_read(allow_overflow=True)
         # if (len(self.device_file.in_buffer) > 10):
         #     self.device_file.in_buffer = self.device_file.in_buffer[-3:]
         # print "in_buffer***" + self.device_file.in_buffer + "***"
@@ -269,22 +269,29 @@ class COMFile(devices.CRLFTextFileBase):
         # import traceback
         # traceback.print_stack()
 
-
+        # import time
+        # time.sleep(0.001)
         # import traceback
         # traceback.print_stack()
         if (not self.fhandle.is_open):
             return False
         try:
-            self.in_buffer += self.fhandle.read(serial_in_size - len(self.in_buffer))
+            while self.fhandle.in_waiting():
+                self.in_buffer += self.fhandle.read(serial_in_size - len(self.in_buffer))
+            logging.debug("self.in_buffer %s" % self.in_buffer)
         except (EnvironmentError, ValueError):
+            logging.debug("CR1")
             raise error.RunError(error.DEVICE_IO_ERROR)
         # if more to read, signal an overflow
         if len(self.in_buffer) >= serial_in_size and self.fhandle.read(1):
+            logging.debug("CR2")
             self.overflow = True
             # drop waiting chars that don't fit in buffer
             while self.fhandle.read(1):
+                logging.debug("CR3")
                 pass
         if not allow_overflow and self.overflow:
+            logging.debug("CR4")
             # only raise this the first time the overflow is encountered
             self.overflow = False
             raise error.RunError(error.COMMUNICATION_BUFFER_OVERFLOW)
@@ -515,8 +522,8 @@ class SerialStream(object):
             self._serial.setRTS(rts)
         if dtr is not None:
             self._serial.setDTR(dtr)
-        # if brk is not None:
-        #     self._serial.setBreak(brk)
+        if brk is not None:
+            self._serial.setBreak(brk)
 
     def get_pins(self):
         """ Get signal pins. """
@@ -543,6 +550,9 @@ class SerialStream(object):
     def write(self, s):
         """ Write to socket. """
         self._serial.write(s)
+        
+    def in_waiting(self):
+        return self._serial.in_waiting
 
 
 class SocketSerialStream(SerialStream):

@@ -300,6 +300,7 @@ class InputHandlerCLI(object):
                     pass
             # give time for the queue to fill up
             time.sleep(0.0005)
+            
             c = self._getc()
             cutoff -= 1
             if c == '':

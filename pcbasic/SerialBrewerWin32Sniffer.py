@@ -26,26 +26,36 @@ import config
 
 import serial
 from serial.serialutil import SerialBase, SerialException, to_bytes, portNotOpenError, writeTimeoutError
-
+import json
 
 class Serial(SerialBase):
     """Serial port implementation for Win32 based on ctypes."""
 
-    BAUDRATES = (9600, 1200, 300, 50, 75, 110, 134, 150, 200, 600, 1800, 2400, 4800,
-                 19200, 38400, 57600, 115200)
+    BAUDRATES = [9600] #(9600, 1200, 300, 50, 75, 110, 134, 150, 200, 600, 1800, 2400, 4800,
+                 # 19200, 38400, 57600, 115200)
 
     def __init__(self, *args, **kwargs):
         self._port_handle = None
         self._overlapped_read = None
         self._overlapped_write = None
         self.verbose = config.get('verbose-brewer')
+
+        self.sniffer = { }
+        self.initial_date = datetime.now()
+
         super(Serial, self).__init__(*args, **kwargs)
+
+    def __del__(self):
+        file_name = "sniffer%s.txt" % self.initial_date.strftime("%Y%m%d%H%M%S")
+        with open(file_name, "w") as f:
+            json.dump(self.sniffer, f)
 
     def open(self):
         """\
         Open port with current settings. This may throw a SerialException
         if the port cannot be opened.
         """
+        return
         if self.verbose:
             sys.stdout.write("Opening with SerialBrewer\n")
         logging.info("Opening with SerialBrewer")
@@ -89,7 +99,7 @@ class Serial(SerialBase):
             self._overlapped_write.hEvent = win32.CreateEvent(None, 0, 0, None)
 
             # # Setup a 4k buffer
-            win32.SetupComm(self._port_handle, 4096, 4096)
+            # win32.SetupComm(self._port_handle, 4096, 4096)
             #
             # # Save original timeout values:
             self._orgTimeouts = win32.COMMTIMEOUTS()
@@ -103,7 +113,7 @@ class Serial(SerialBase):
                 if success:
                     break
 
-            success_output = "\n"
+            success_output = ""
             success_output += "************************\n"
             if (success):
                 success_output += "Connection Successful!(" + str(self.baudrate) + ")\n"
@@ -168,7 +178,7 @@ class Serial(SerialBase):
         #  ReadTotalTimeoutConstant,WriteTotalTimeoutMultiplier,
         #  WriteTotalTimeoutConstant
 
-        timeouts.ReadIntervalTimeout = win32.MAXDWORD
+        timeouts.ReadIntervalTimeout = 0 #win32.MAXDWORD
         timeouts.ReadTotalTimeoutMultiplier = 0
         timeouts.ReadTotalTimeoutConstant = 0
         timeouts.WriteTotalTimeoutMultiplier = 0
@@ -444,6 +454,8 @@ class Serial(SerialBase):
 
         return True
 
+
+
     def _close(self):
         """internal close port helper"""
         if self._port_handle:
@@ -503,10 +515,27 @@ class Serial(SerialBase):
         else:
             read = bytes()
 
+        # TODO: Add data to the sniffer here
+
         return bytes(read)
+
+    def add_data_to_sniffer(self, type, data):
+        now = datetime.now()
+        timestamp_seconds = (now - self.initial_date).total_seconds()
+        timestamp_microseconds = timestamp_seconds * 1e6 + int(now.strftime("%f"))
+
+        if not timestamp_microseconds in self.sniffer:
+            self.sniffer[timestamp_microseconds] = []
+
+        self.sniffer[timestamp_microseconds].append((type, data))
 
     def write(self, data):
         """Output the given byte string over the serial port."""
+
+        self.add_data_to_sniffer("W", data)
+
+        return
+
         self._write_timeout = 0
         self.flush()
 
@@ -644,3 +673,16 @@ class Serial(SerialBase):
 
     def setBreak(self, value=1):
         return
+
+if __name__ == "__main__":
+    serial = Serial("COM1", timeout=0)
+
+    alphabet = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+    import random
+    for i in range(0, 10):
+        data = alphabet[random.randint(0, len(alphabet) - 1)]
+        serial.write(data)
+
+    from pprint import pprint
+    pprint (serial.sniffer)
